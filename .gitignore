@@ -17,3 +17,6 @@ dist/
 
 # 课程需求文档（本地参考，不作为工程源码提交）
 phase_cli_1.md
+
+# test scratch dir
+/test/.tmp/
