@@ -1,0 +1,109 @@
+@startuml svg-editor-architecture
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Noto Sans CJK SC"
+left to right direction
+
+package "cli（表现/适配层）" {
+  [Repl] as Repl
+  [Tokenizer] as Tokenizer
+  [CommandRegistry\n（19 条命令，按名分派 ①）] as CmdReg
+  [Action 家族\nInit/Read/Save/Canvas/Undo/Redo\nTree/Show/Help/Edit] as Actions
+  [TreePresenter] as TreePresenter
+  [ShowPresenter] as ShowPresenter
+  [HelpPresenter] as HelpPresenter
+}
+
+package "app（应用层）" {
+  [EditorSession] as Session
+}
+
+package "commands（命令层）" {
+  [History] as History
+  [Command 家族\nCreate/Move/Scale/Set/Delete\nGroup/Ungroup/AddTo/Front/Back] as CmdFamily
+}
+
+package "domain（领域层）" {
+  [SvgDocument] as Doc
+  [Shape 抽象基类] as Shape
+  [ContainerShape] as Container
+  [CanvasShape] as Canvas
+  [GShape] as G
+  [Rect / Circle / Ellipse\nLine / Text] as Leaves
+  [ShapeFactory\n（类型名分派 ②）] as Factory
+  [ShapeProvider 家族] as Providers
+  [EditorError] as Err
+}
+
+package "ports（接口层）" {
+  [FileStore] as FileStore
+  [SvgCodec] as Codec
+}
+
+package "io（基础设施适配层）" {
+  [NodeFileStore] as NodeFS
+  [SvgReader] as Reader
+  [SvgWriter] as Writer
+  [XmlParser / XmlWriter] as Xml
+}
+
+package "组合根" {
+  [main.ts] as Main
+}
+
+Repl --> Tokenizer
+Repl --> CmdReg
+Repl --> TreePresenter
+Repl --> ShowPresenter
+Repl --> HelpPresenter
+CmdReg --> CmdFamily
+CmdReg --> Actions
+Actions --> Session
+Actions --> TreePresenter : 构造展示器
+Actions --> ShowPresenter : 构造展示器
+Actions --> HelpPresenter : 构造展示器
+TreePresenter --> Doc
+ShowPresenter --> Doc
+HelpPresenter --> CmdReg : usage/summary
+
+Session --> History
+Session --> Factory
+Session --> Shape
+Session --> FileStore
+Session --> Codec
+
+CmdFamily --> Shape
+CmdFamily --> Factory
+CmdFamily --> History : undo 栈元素
+
+History --> CmdFamily
+
+Reader ..|> Codec
+Writer ..|> Codec
+NodeFS ..|> FileStore
+Reader --> Xml
+Writer --> Xml
+Reader --> Factory
+Writer --> Shape
+Reader --> Err
+
+Container <|-- Canvas
+Container <|-- G
+Shape <|-- Container
+Shape <|-- Leaves
+Factory --> Providers
+
+Main --> Repl
+Main --> Session
+Main --> NodeFS
+Main --> Reader
+Main --> Writer
+Main --> Factory
+
+note right of CmdReg
+  按名分派 ①（允许，待重构为插件注册）
+end note
+note right of Factory
+  按名分派 ②（允许，待重构为 ShapeProvider 插件）
+end note
+@enduml
