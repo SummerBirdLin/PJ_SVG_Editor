@@ -260,6 +260,11 @@ export abstract class Shape {
     return 1;
   }
 
+  /** 子文本内容（只有 text 图形有）；无内容返回 null。 */
+  textContent(): string | null {
+    return null;
+  }
+
   /** scale 撤销用的几何快照（整棵子树由命令负责遍历）。 */
   snapshotGeometry(): AttributeEntry[] {
     return this.geometryAttributeEntries();

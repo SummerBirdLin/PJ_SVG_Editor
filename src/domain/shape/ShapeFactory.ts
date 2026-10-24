@@ -65,6 +65,10 @@ export class ShapeFactory {
     return shape;
   }
 
+  hasType(typeName: string): boolean {
+    return this.providersByType.has(typeName);
+  }
+
   typeNames(): readonly string[] {
     return [...this.providersByType.keys()];
   }

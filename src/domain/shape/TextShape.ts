@@ -25,7 +25,7 @@ export class TextShape extends Shape {
     return this.yValue;
   }
 
-  textContent(): string {
+  override textContent(): string {
     return this.contentValue;
   }
 
