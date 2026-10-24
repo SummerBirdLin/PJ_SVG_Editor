@@ -38,6 +38,15 @@ saved to demo.svg (2 elements)
 | `npm test` | 运行全部单元测试与端到端 transcript 测试 |
 | `npm run typecheck` | 严格模式类型检查 |
 
+## 回放需求文档里的示例会话
+
+```bash
+npm run cli < examples/transcript-6.txt    # 需求文档 §6 的完整会话
+npm run cli < examples/transcript-61.txt   # 需求文档 §6.1 的两节点流程图
+```
+
+管道模式下不输出 banner 与 `svg> ` 提示符，输出即为可断言的命令结果（`npm test` 里的 transcript 测试用的就是同一批命令）。
+
 ## 目录
 
 ```text
@@ -50,6 +59,7 @@ src/
   app/               EditorSession 用例门面
   cli/               REPL、命令注册表、tree/show/help 展示器
   main.ts            组合根（唯一装配处）
+examples/            可直接回放的需求文档示例会话与外部 SVG
 test/                单元测试、transcript 端到端测试、依赖方向守护测试
 ```
 
