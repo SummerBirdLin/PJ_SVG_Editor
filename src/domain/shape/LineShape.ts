@@ -33,17 +33,17 @@ export class LineShape extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    this.x1Value += dx;
-    this.y1Value += dy;
-    this.x2Value += dx;
-    this.y2Value += dy;
+    this.x1Value = this.requireFinite(this.x1Value + dx, 'x1');
+    this.y1Value = this.requireFinite(this.y1Value + dy, 'y1');
+    this.x2Value = this.requireFinite(this.x2Value + dx, 'x2');
+    this.y2Value = this.requireFinite(this.y2Value + dy, 'y2');
   }
 
   override scale(factor: number): void {
-    this.x1Value *= factor;
-    this.y1Value *= factor;
-    this.x2Value *= factor;
-    this.y2Value *= factor;
+    this.x1Value = this.requireFinite(this.x1Value * factor, 'x1');
+    this.y1Value = this.requireFinite(this.y1Value * factor, 'y1');
+    this.x2Value = this.requireFinite(this.x2Value * factor, 'x2');
+    this.y2Value = this.requireFinite(this.y2Value * factor, 'y2');
   }
 
   override positionText(): string {

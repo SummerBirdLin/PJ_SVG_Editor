@@ -30,13 +30,13 @@ export class TextShape extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    this.xValue += dx;
-    this.yValue += dy;
+    this.xValue = this.requireFinite(this.xValue + dx, 'x');
+    this.yValue = this.requireFinite(this.yValue + dy, 'y');
   }
 
   override scale(factor: number): void {
-    this.xValue *= factor;
-    this.yValue *= factor;
+    this.xValue = this.requireFinite(this.xValue * factor, 'x');
+    this.yValue = this.requireFinite(this.yValue * factor, 'y');
   }
 
   override positionText(): string {

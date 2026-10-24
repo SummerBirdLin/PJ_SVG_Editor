@@ -33,15 +33,15 @@ export class EllipseShape extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    this.cxValue += dx;
-    this.cyValue += dy;
+    this.cxValue = this.requireFinite(this.cxValue + dx, 'cx');
+    this.cyValue = this.requireFinite(this.cyValue + dy, 'cy');
   }
 
   override scale(factor: number): void {
-    this.cxValue *= factor;
-    this.cyValue *= factor;
-    this.rxValue *= factor;
-    this.ryValue *= factor;
+    this.cxValue = this.requireFinite(this.cxValue * factor, 'cx');
+    this.cyValue = this.requireFinite(this.cyValue * factor, 'cy');
+    this.rxValue = this.requireFinite(this.rxValue * factor, 'rx');
+    this.ryValue = this.requireFinite(this.ryValue * factor, 'ry');
   }
 
   override positionText(): string {

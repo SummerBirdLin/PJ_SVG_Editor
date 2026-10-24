@@ -98,3 +98,20 @@ test('CanvasShape: 尺寸只能经 resize；作为图形被操作时显式报错
   assert.throws(() => canvas.setAttribute('fill', 'red'), /cannot modify the canvas as a shape/);
   assert.equal(canvas.label(), 'svg');
 });
+
+test('NumberFormat: 极大/极小值用科学计数法，不产生 1e+3 或 Infinity', () => {
+  assert.equal(NumberFormat.format(1e21), '1e+21');
+  assert.equal(NumberFormat.format(1e300), '1e+300');
+  assert.equal(NumberFormat.format(1e-7), '1e-7');
+  assert.equal(NumberFormat.format(1e-6), '0.000001');
+  assert.throws(() => NumberFormat.format(Number.POSITIVE_INFINITY), /invalid number/);
+});
+
+test('几何运算溢出时报错，且不把 Infinity 写进图形', () => {
+  const rect = new RectShape('r1', 0, 0, 10, 10);
+  rect.move(1e308, 0);
+  assert.equal(rect.x(), 1e308);
+  assert.throws(() => rect.move(1e308, 0), /x is out of range/);
+  assert.equal(rect.x(), 1e308, '溢出时原值必须保持不变');
+  assert.throws(() => rect.scale(Number.MAX_VALUE), /width is out of range|x is out of range/);
+});

@@ -27,14 +27,14 @@ export class CircleShape extends Shape {
   }
 
   override move(dx: number, dy: number): void {
-    this.cxValue += dx;
-    this.cyValue += dy;
+    this.cxValue = this.requireFinite(this.cxValue + dx, 'cx');
+    this.cyValue = this.requireFinite(this.cyValue + dy, 'cy');
   }
 
   override scale(factor: number): void {
-    this.cxValue *= factor;
-    this.cyValue *= factor;
-    this.radiusValue *= factor;
+    this.cxValue = this.requireFinite(this.cxValue * factor, 'cx');
+    this.cyValue = this.requireFinite(this.cyValue * factor, 'cy');
+    this.radiusValue = this.requireFinite(this.radiusValue * factor, 'r');
   }
 
   override positionText(): string {

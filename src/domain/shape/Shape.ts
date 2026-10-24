@@ -265,6 +265,11 @@ export abstract class Shape {
     return null;
   }
 
+  /** 几何运算后的有限性校验：溢出时报错，绝不把 Infinity 写进文档。 */
+  protected requireFinite(value: number, attributeName: string): number {
+    return NumberFormat.requireFinite(value, attributeName);
+  }
+
   /** scale 撤销用的几何快照（整棵子树由命令负责遍历）。 */
   snapshotGeometry(): AttributeEntry[] {
     return this.geometryAttributeEntries();
