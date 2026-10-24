@@ -150,17 +150,104 @@
 
 ---
 
+### 2.3 实现期记录（io + app + cli）
+
+| # | 现象 / 决策点 | 处理 |
+|---|---|---|
+| 1 | 首版方案的 ports 只有一个 `SvgCodec`（读+写合一）。实现 `SvgReader` 时发现它需要 `ShapeFactory`（按标签造节点），而 `SvgWriter` 不需要；`EditorSession` 同时注入一个"读写合一"的对象会让依赖变宽 | **拆成 `SvgDecoder` / `SvgEncoder` 两个接口**，`EditorSession(files, decoder, encoder)` 注入。这是"实现推动架构修正"的一例：§1.1/§1.2/§1.3 与组件图都已同步，`test/architecture.test.ts` 的 `import type` 规则也按新接口校验 |
+| 2 | `save` 该不该清空 undo 栈？评审只说了"IO 命令后禁止 undo" | **save 只置闸门、不清历史**（否则"保存前"的编辑永远失去撤销机会）；init/read/canvas 带参才清历史（文档已被替换或尺寸被改，旧命令不再意义）。与附录 A.9 一致 |
+| 3 | "命令失败不改变任何状态"如何保证？ | 约定：先校验后修改；`save` 先 `encode` 再 `write`、成功后才更新路径与闸门；`undo` 栈在命令抛错前不 `record`。`test/app/session.test.ts` 用"不可写文件""不存在的 id"两种失败路径各断言一次 |
+| 4 | 交互式 banner/`svg> ` 的输出归属 | banner/prompt 由 `main.ts` 依据 `isTTY` 决定，`Repl` 只接收配置；管道回放时输出只有命令结果，golden test 因此无需剥提示符。沙箱拿不到 pty（`script` 报 Permission denied），交互外观由 `test/cli/repl.test.ts` 断言两种配置下的精确输出，**真实 TTY 未实测**（记为已知局限） |
+| 5 | `read` 读入 `<text>` 的内容边界 | 只取 `<text>` 的直接文本，`<tspan>` 等嵌套文本不支持（附录 A.7 的"未支持元素跳过"规则之外的单列局限，记为阶段边界） |
+| 6 | `show <g>` 该显示什么？ | 首行 label+parent，随后几何/样式明细，容器追加 `children=N`（附录 A.4 已声明）。`tree` 的内联属性对容器只显示 `fill`（若有），与需求示例一致 |
+| 7 | 测试期望写错一次 | 我最初把"init 后 undo"期望成 `nothing to undo`，实际实现按需求 §4.3 报 `undo not allowed after io command`。**修正的是测试而不是实现**——这条也说明"先写契约、再对代码/测试双向校验"的价值 |
+| 8 | tree 对齐无法与需求示例逐字一致 | 按 A.8 的裁定生成**本工程 golden**，不对需求 transcript 做 naive diff；`§6`/`§6.1` 的断言以本工程规则为准，语义（结构/属性/回显）与需求一致 |
+
 ## 3. 一致性自查
 
-> 实现完成后，对照 §1 如实回答。
+> 实现完成后对照 §1 的回答（依据 `git log`、`npm test` 与本文档）。
 
-（实现完成后补全）
+### 3.1 模块划分：实际目录与方案是否一致？
+
+**一致，且有 1 处已记录的修订**：
+
+| 方案里的模块 | 实际目录 | 一致性 |
+|---|---|---|
+| domain | `src/domain/`（shape/ + provider/ + SvgDocument + NumberFormat + EditorError） | ✓ |
+| commands | `src/commands/`（Command + 10 个命令 + History + 解析上下文） | ✓ |
+| ports | `src/ports/`（`FileStore`、`SvgDecoder`、`SvgEncoder`） | ✓（**修订**：原方案写 `SvgCodec` 一个接口，实现时拆为读/写两个，见 §2.3#1） |
+| io | `src/io/`（NodeFileStore、SvgReader、SvgWriter、xml/**、IdAllocator） | ✓ |
+| app | `src/app/EditorSession.ts` | ✓ |
+| cli | `src/cli/`（Repl、Tokenizer、CommandRegistry、CommandEntry/ActionEntry、action/**、presenter/**） | ✓ |
+| 组合根 | `src/main.ts` | ✓ |
+
+`test/` 是测试代码、不参与产品分层；`doc/diagrams/` 是文档附图。除 ports 拆接口外，没有其它目录级偏差；例如没有出现"顺手把解析逻辑塞进 domain"或"在 cli 里直接读文件"的情况。
+
+### 3.2 依赖方向：方案里的规则有没有被违反？
+
+**没有违反，且是自动检查而非抽样**：
+
+* `test/architecture.test.ts`（2 个用例，`npm test` 每次都跑）逐条扫描 `src/**/*.ts` 的 import：
+  * 按 §1.3 的矩阵检查模块边界（越界即失败）；
+  * `src/ports/**` 对 domain 只允许 `import type`；
+  * 平台 API（`node:*`）只允许出现在 `io/` 与 `main.ts`；
+  * 禁止第三方运行时依赖；
+  * 模块级依赖图无环。
+* 人工抽样（对照矩阵再确认一遍）：`EditorSession` 只 import domain/commands/ports；`Repl` 只 import app 与 cli 内部，**不触碰 io**；`SvgReader`/`SvgWriter` 只 import domain/ports/io 内部；`domain` 内没有任何跨模块 import。
+* §1.3 标注的两处"按名分派"仍是仅有的两处：`cli/CommandRegistry`（19 条）与 `domain/shape/ShapeFactory`（6 个 Provider）；domain/commands 内没有 `switch(tag)`（`grep` 无 `switch` 语句，几何语义全部是虚方法）。
+
+### 3.3 与方案不一致的其它地方（如实记录）
+
+| 不一致处 | 说明 |
+|---|---|
+| ports 接口数 1 → 2 | 见 §2.3#1，已在 §1.1/§1.2/§1.3 与组件图同步 |
+| `tree` 内联对容器显示 `fill` | 规则是"几何 + fill"，容器无几何时只剩 fill；需求示例未出现容器带 fill 的情况，属规则的自然结果 |
+| `show` 容器追加 `children=N` | 需求只给了叶子的 show 示例，附录 A.4 已声明 |
+| 补充的错误文案 | 需求 §4.2 未覆盖的场景（duplicate shape in group / addto 环 / ungroup 叶子 / invalid svg / usage / invalid number / no file path / nothing to undo·redo / redo 闸门）在附录 B 逐条列明 |
+
+**结论**：实现与架构方案一致；唯一的结构性修订（ports 拆接口）已记录并在文档中同步，没有出现"文档说一套、代码做一套"的未记录偏差。
+
+
 
 ---
 
 ## 4. 质量保证手段
 
-（实现完成后补全）
+**结论先行**：`npm test` 46 个用例全绿、`npm run typecheck` 无错误、`npm run build` 产物可运行、需求 §6/§6.1 的两段 transcript 逐行断言通过。信心来自以下六层，而不是"看起来能跑"：
+
+### 4.1 分层单测（46 个用例）
+
+| 层 | 用例数 | 覆盖点 |
+|---|---|---|
+| domain | 9（`test/domain`） | 五种叶子的 move/scale/set/属性视图、容器递归、画布拒绝图形操作、数字格式化（浮点噪声/整数/-0）、Provider 创建与未知类型报错 |
+| commands | 11（`test/commands`） | 10 个命令的 execute/undo/redo 回显、结构变化、错误路径（id 重复、容器不存在/类型不对、祖先环、重复目标、越界参数、非正因子） |
+| io | 8（`test/io`） | XML 声明/注释/实体/CDATA/自闭合/结构错误；缺 id、重复 id、未支持元素、非法几何、`transform`、未知 `data-kind`；属性顺序与转义；**编码→解码→编码 幂等** |
+| app | 7（`test/app`） | IO 闸门与解除、redo 栈清空、路径记忆（read/save/init）、告警顺序与计数口径、canvas 显示 vs 改尺寸、写失败不改状态、失败命令不入栈 |
+| cli | 9（`test/cli`） | 注册表 19 条完整性 + help 自动生成；分词（引号/未闭合）；banner/prompt 两种模式；**需求 §6 与 §6.1 的完整 transcript 逐行 golden**（含 save 文件内容逐字比对） |
+| 架构 | 2（`test/architecture.test.ts`） | 依赖矩阵、`import type` 规则、平台 API 白名单、无第三方依赖、依赖图无环 |
+
+### 4.2 端到端 transcript 断言
+
+需求文档 §6 的完整会话与 §6.1 的流程图会话都被当作**契约测试**：命令序列逐条输入，输出逐行比对（包括 `warning:` 与 `error:` 行、tree 结构、undo/redo 回显、`(N elements)` 计数）；`save` 的产物再与期望的 SVG 文本逐字比较。任何一行回显变化都会让测试失败。
+
+### 4.3 架构守护测试
+
+§1.3 的依赖矩阵不是"写在文档里的君子协定"：`test/architecture.test.ts` 解析 `src/**/*.ts` 的 import，越界依赖、`ports` 的非 `import type` 依赖、非 io/main 使用 `node:*`、引入第三方运行时依赖、模块级循环依赖，任何一项都会让 `npm test` 失败。这同时是 §3.2 自查依据。
+
+### 4.4 严格类型与可构建性
+
+* `tsconfig` 开启 `strict`、`noUncheckedIndexedAccess`、`noImplicitOverride`、`noPropertyAccessFromIndexSignature`、`verbatimModuleSyntax`、`isolatedModules`；
+* `npm run build` 用独立 tsconfig（`rootDir: src`）编译到 `dist/`，并用 `node dist/main.js` 实跑同一段会话，确认 ESM 产物（含 `.js` 扩展名 import）可执行。
+
+### 4.5 错误路径与"失败不改状态"
+
+附录 B 的每一条错误文案都至少有一个用例覆盖；三条"原子性"约定各有专门测试：create/group/addto/ungroup 先校验后修改、`save` 先编码后写盘成功才更新路径与闸门、失败命令不进入 undo 栈。
+
+### 4.6 手工冒烟与已知局限
+
+* 额外手工跑了一组边界会话（嵌套容器 scale、`front/back`、跨父 `group`、`addto` 环、`save → read` 回读、`set` 旧值不存在时 undo 移除属性），结果与附录 A 一致；
+* **已知局限（未覆盖）**：交互式 TTY 外观未实测（沙箱无法分配 pty，只有单测确认配置行为）；不支持 `<tspan>` 等嵌套文本、命名空间前缀、`clipPath`/`defs` 等非图形元素（按 A.7 跳过并告警）；无性能/压力测试；
+* 第二轮独立评审的结论与修复记录见 §2.4（若评审未提出需修复项，此处会写明"无阻断项"）。
 
 ---
 
