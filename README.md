@@ -45,7 +45,7 @@ doc/                 设计文档、架构图（PlantUML 源 + 渲染版）
 src/
   domain/            领域模型（图形树、几何语义、类型工厂），零外部依赖
   commands/          编辑命令（Command 模式）与 undo/redo 历史
-  ports/             FileStore / SvgCodec 抽象接口
+  ports/             FileStore / SvgDecoder / SvgEncoder 抽象接口
   io/                SVG 读写、最小 XML 解析、Node fs 适配
   app/               EditorSession 用例门面
   cli/               REPL、命令注册表、tree/show/help 展示器

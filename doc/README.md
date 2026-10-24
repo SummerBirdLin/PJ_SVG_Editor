@@ -17,7 +17,7 @@
 | 模块 | 目录 | 职责 | 对外暴露（其他模块只能用这些） |
 |---|---|---|---|
 | **domain**<br>领域层 | `src/domain/` | 图形树与几何语义：`Shape` 抽象基类、`ContainerShape`/`CanvasShape`/`GShape`、5 种叶子图形；`SvgDocument`；`ShapeFactory` + 6 个 `ShapeProvider`；属性白名单与 `set` 语义；统一错误类型 `EditorError`。**不依赖任何其他模块**（含 Node API）。 | `SvgDocument`、`Shape` 家族、`ShapeFactory`、`EditorError` |
-| **commands**<br>命令层 | `src/commands/` | 10 个编辑命令（`CreateCommand`/`DeleteCommand`/`MoveCommand`/`ScaleCommand`/`SetCommand`/`GroupCommand`/`UngroupCommand`/`AddToCommand`/`FrontCommand`/`BackCommand`），每个命令自带 `execute`/`undo`（重做 = 再次 `execute`）；命令内部保存逆操作所需的局部状态（被删子树、原父与原索引、旧属性值）；`History` 维护 undo/redo 双栈。每个命令类还自带 `static parse(tokens, ctx)`（命令行语法 → 命令对象）、`commandName`/`usage`/`summary`，供注册表与 `help` 复用；回显句式由命令产生，数字/标签格式复用 domain 的 `NumberFormat`/`Shape.label()`。 | `Command` 抽象类、`History`、各命令类（含静态语法入口） |
+| **commands**<br>命令层 | `src/commands/` | 10 个编辑命令（`CreateCommand`/`DeleteCommand`/`MoveCommand`/`ScaleCommand`/`SetCommand`/`GroupCommand`/`UngroupCommand`/`AddToCommand`/`FrontCommand`/`BackCommand`），每个命令自带 `execute`/`undo`（重做 = 再次 `execute`）；命令内部保存逆操作所需的局部状态（被删子树、原父与原索引、旧属性值）；`History` 维护 undo/redo 双栈。每个命令类还自带 `static parse(args, ctx)`（命令行语法 → 命令对象）、`commandName`/`usage`/`summary`，供注册表与 `help` 复用；回显句式由命令产生，数字/标签格式复用 domain 的 `NumberFormat`/`Shape.label()`。 | `Command` 抽象类、`History`、各命令类（含静态语法入口） |
 | **ports**<br>接口层 | `src/ports/` | 三条抽象边界：`FileStore`（读/写文本文件）、`SvgDecoder`（SVG 文本 → 文档，结果携带 warnings）、`SvgEncoder`（文档 → SVG 文本）。只有接口与类型，无实现、无行为。 | `FileStore`、`SvgDecoder`、`SvgEncoder` |
 | **io**<br>基础设施层 | `src/io/` | `NodeFileStore`（Node `fs` 适配）、`SvgReader`（实现 `SvgDecoder`）、`SvgWriter`（实现 `SvgEncoder`）、内部最小 XML 解析/输出（`XmlParser`/`XmlWriter`）、`IdAllocator`（缺 id/重复 id 分配），以及对未支持元素、`transform`、未知 `data-kind` 的告警。 | `NodeFileStore`、`SvgReader`、`SvgWriter` |
 | **app**<br>应用层 | `src/app/` | `EditorSession` 门面：持有当前文档与 `History`；处理 `init`/`read`/`save`/`canvas` 四个文档命令；执行编辑命令并写入历史；维护"IO 命令后禁止 undo/redo"闸门与"读入路径"记忆。 | `EditorSession` |
@@ -52,8 +52,8 @@
 | **Factory + Provider（注册表）** | `domain/shape/ShapeFactory.ts`、`domain/shape/provider/*.ts` | 类型名 → 构造逻辑。`ShapeProvider` 只描述领域事实：`typeName`/`svgTag`/**创建该类型需要的属性序列（名字 + 是否必填）**/`create(id, init)`/`settableAttributes()`。`CreateCommand` 用这份序列把 CLI 位置参数按序填入，`SvgReader` 用同一份定义解析 SVG 属性；"位置参数的顺序与 usage 文本"留在命令层，domain 不认识 CLI 方言。**按名分派之一（允许），已在 §1.3 标注为待重构**：阶段 2 改为运行时插件注册（ShapeProvider 插槽）。 | 阶段 2 `box` 插件的落点 |
 | **Registry** | `cli/CommandRegistry.ts` | 命令名 → 命令/动作（19 条），既做分派也是 `help` 的数据源（每类自带 `usage`/`summary`）。**按名分派之二（允许），标注待重构**：命令表增长后改为扫描注册。 | 需求允许的两处之一 |
 | **Facade** | `app/EditorSession.ts` | 对 CLI 只暴露"用例"级方法，隐藏文档替换、历史记录、IO 调用与 undo 闸门的编排顺序。 | 三通道复用的核心 |
-| **Adapter** | `io/NodeFileStore.ts`、`io/SvgReader.ts`、`io/SvgWriter.ts`；`cli/EditAction.ts`（命令 → 可执行动作） | `FileStore`/`SvgDecoder`/`SvgEncoder` 接口 ← Node `fs` 与自写 XML 实现；命令对象 ← 统一动作协议。 | 便于测试用内存实现替换 |
-| **Strategy** | `cli/*Presenter.ts` | 同一份文档的三种展示（tree / show / help）；将来 GUI 或 JSON 输出只需新增 Presenter。 | 展示方式是最易变的部分，故抽离 |
+| **Adapter** | `io/NodeFileStore.ts`、`io/SvgReader.ts`、`io/SvgWriter.ts`；`cli/action/EditAction.ts`（命令 → 可执行动作） | `FileStore`/`SvgDecoder`/`SvgEncoder` 接口 ← Node `fs` 与自写 XML 实现；命令对象 ← 统一动作协议。 | 便于测试用内存实现替换 |
+| **Strategy** | `cli/presenter/*.ts` | 同一份文档的三种展示（tree / show / help）；将来 GUI 或 JSON 输出只需新增 Presenter。 | 展示方式是最易变的部分，故抽离 |
 | **Template Method** | `domain/shape/Shape.ts` | 基类给出"标签、属性串、内联摘要、明细行"的骨架（`label()`、`attributes()`、`inlineText()`、`detailLines()`），子类只填自己的几何字段与 `positionText()`，避免每个子类重复拼字符串。 | 5 个叶子图形共享 |
 
 > 说明：需求禁止"到处 `switch(tag)` 的分派"。本设计里**没有**按标签字符串分派：几何语义靠虚拟方法（`move`/`scale`/`setAttribute`/`attributes`）多态实现；仅有的两处"名字 → 实现"查表分别在 `CommandRegistry`（命令名）与 `ShapeFactory`（类型名），即需求允许的两处。
@@ -99,11 +99,11 @@
 | 3 | **存储与来源** | 文件 → 内存字符串/远端仓库/浏览器下载 | **留了**：`FileStore` 接口只有 `readText`/`writeText`，换实现即可；`SvgDecoder`/`SvgEncoder` 与 Node 无关。 |
 | 4 | **寻址方式** | 从 `id` 改为结构路径寻址（`/canvas/g1/rect[2]`，类似 XPath） | **决定不留**：本阶段约定就是 id 唯一。id → (节点, 父节点, 索引) 的定位收敛在 `SvgDocument.locate()` 一个方法里（`findById` 只是它的投影），命令层只用 `locate()`；将来改路径寻址只需换这一个方法，`group`/`addto`/`delete` 这类需要父节点与索引的命令不受影响。 |
 | 5 | **容器变换语义** | 用 `<g transform="translate/scale">` 代替"递归改子坐标" | **决定不留矩阵语义**：需求要求 `tree` 内联绝对坐标、`move` 作用于容器时"整体平移"，直接改子坐标与之一致，序列化也简单。**但对读入的文件不静默丢信息**：`transform` 原样进 `extras`、`save` 写回，`tree`/`show` 显示的仍是局部坐标，并给出 `warning: transform not applied: g#diagram`。若将来实现矩阵语义，改动集中在 `GShape.move/scale` 与 `SvgWriter` 两处。 |
-| 6 | **撤销策略** | 命令数激增后，逐命令实现 `undo` 容易出错 → 整文档快照（Memento 全量） | **决定不留全量快照**：Command 模式是评分硬要求，且逆操作比快照省内存。`History` 的接口（`record`/`undo`/`redo`/`clear`）不随策略变化，替换命令实现即可。`scale` 的 undo 存"子树旧几何"而不是按 `1/factor` 反算，避免浮点漂移。 |
+| 6 | **撤销策略** | 命令数激增后，逐命令实现 `undo` 容易出错 → 整文档快照（Memento 全量） | **决定不留全量快照**：Command 模式是评分硬要求，且逆操作比快照省内存。`History` 的接口（`record`/`peekUndo`/`commitUndo`/`peekRedo`/`commitRedo`/`clear`）不随策略变化，替换命令实现即可。`scale` 的 undo 存"子树旧几何"而不是按 `1/factor` 反算，避免浮点漂移。 |
 | 7 | **属性白名单** | 新增 `opacity`、`font-size`、`transform` 等可设置属性 | **留了一半**：`set` 白名单在 `Shape` 子类的 `settableGeometryAttributes()`/`setAttribute()` 里按类型实现，新增属性只改对应类；**未知属性在读取时原样保留**（`Shape.extras`），保证 `read → save` 不丢外部文件的额外属性。 |
 | 8 | **XML 解析实现** | 自写解析器不够用（命名空间、CDATA、实体）→ 换成熟库 | **留了**：`io/xml/` 是独立子模块，只被 `SvgReader`/`SvgWriter` 使用；换实现不波及任何其他模块。本阶段选零依赖自写，是为了可离线、可测试、可解释每一行行为。 |
 | 9 | **画布/视口** | 增加缩放、平移视图、多画布/多文档 | **留了**：画布尺寸只有 `CanvasShape` 可写，`canvas` 命令单点修改；多文档将来只需让 `EditorSession` 持有文档列表（`History` 与命令都以"传入的 document"为参数，不持有全局单例）。 |
-| 10 | **命令集合与语法** | 阶段 2 增加插件命令（如 `plugin load`）、新子句（`in` 已是先例） | **留了**：每条命令自带 `static parse(tokens, ctx)` 与 `usage`/`summary`，`Tokenizer` 只做引号感知分词，注册表只做"名字 → 命令类"；新增命令 = 新增类 + 表里一行，不需要改分词器或 Repl。 |
+| 10 | **命令集合与语法** | 阶段 2 增加插件命令（如 `plugin load`）、新子句（`in` 已是先例） | **留了**：每条命令自带 `static parse(args, ctx)` 与 `usage`/`summary`，`Tokenizer` 只做引号感知分词，注册表只做"名字 → 命令类"；新增命令 = 新增类 + 表里一行，不需要改分词器或 Repl。 |
 | 11 | **插件来源与信任边界** | 插件从目录/URL 加载；版本不兼容、加载失败、`data-kind` 无法识别时需要降级 | **留了**：`ports/PluginSource`（阶段 2 新增）+ 组合根装配；降级规则现在就定：`read` 遇到未知 `data-kind` 时**降级为普通 `<g>`** 并告警（与需求 §4.4 "未安装插件降级为 g"一致）。本阶段无插件实现，但读取路径已按此规则工作。 |
 | 12 | **undo 组合/宏** | 脚本回放、批量操作需要"多条命令 = 一个 undo 单元" | **留了**：`History` 以命令对象为单元，`GroupCommand` 已是"多目标单命令"的特例；阶段 3 只需加 `CompositeCommand` 聚合子命令（`execute` 顺序执行、`undo` 逆序撤销），`History` 与 Repl 都不用改。 |
 
@@ -158,10 +158,32 @@
 | 2 | `save` 该不该清空 undo 栈？评审只说了"IO 命令后禁止 undo" | **save 只置闸门、不清历史**（否则"保存前"的编辑永远失去撤销机会）；init/read/canvas 带参才清历史（文档已被替换或尺寸被改，旧命令不再意义）。与附录 A.9 一致 |
 | 3 | "命令失败不改变任何状态"如何保证？ | 约定：先校验后修改；`save` 先 `encode` 再 `write`、成功后才更新路径与闸门；`undo` 栈在命令抛错前不 `record`。`test/app/session.test.ts` 用"不可写文件""不存在的 id"两种失败路径各断言一次 |
 | 4 | 交互式 banner/`svg> ` 的输出归属 | banner/prompt 由 `main.ts` 依据 `isTTY` 决定，`Repl` 只接收配置；管道回放时输出只有命令结果，golden test 因此无需剥提示符。沙箱拿不到 pty（`script` 报 Permission denied），交互外观由 `test/cli/repl.test.ts` 断言两种配置下的精确输出，**真实 TTY 未实测**（记为已知局限） |
-| 5 | `read` 读入 `<text>` 的内容边界 | 只取 `<text>` 的直接文本，`<tspan>` 等嵌套文本不支持（附录 A.7 的"未支持元素跳过"规则之外的单列局限，记为阶段边界） |
+| 5 | `read` 读入 `<text>` 的内容边界与画布尺寸来源 | 初版只取 `<text>` 的直接文本、`<tspan>` 内容被丢；第二轮评审指出后改为**按顺序展平并告警**，缺 `width`/`height` 时回退 `viewBox`（见 §2.4） |
 | 6 | `show <g>` 该显示什么？ | 首行 label+parent，随后几何/样式明细，容器追加 `children=N`（附录 A.4 已声明）。`tree` 的内联属性对容器只显示 `fill`（若有），与需求示例一致 |
 | 7 | 测试期望写错一次 | 我最初把"init 后 undo"期望成 `nothing to undo`，实际实现按需求 §4.3 报 `undo not allowed after io command`。**修正的是测试而不是实现**——这条也说明"先写契约、再对代码/测试双向校验"的价值 |
 | 8 | tree 对齐无法与需求示例逐字一致 | 按 A.8 的裁定生成**本工程 golden**，不对需求 transcript 做 naive diff；`§6`/`§6.1` 的断言以本工程规则为准，语义（结构/属性/回显）与需求一致 |
+
+### 2.4 第二轮独立评审（实现评审 → 修复）
+
+实现完成、§3/§4 写完后，我让第二个独立上下文的评审 agent 只读评审"代码 + 文档"，明确要求**实际运行命令验证**而不是只读代码。它给出 15 条；其中 2 条基于评审启动时的旧快照（当时我还没提交 remote 配置与 §3/§4），复核后确认已满足；其余 13 条我逐条复现，9 条是真问题、已修，4 条属文档/测试细节、一并修正。关键几条：
+
+| # | 评审发现（可复现证据） | 处理 |
+|---|---|---|
+| 1 | **大数格式化静默损坏 SVG**：`format(1e300)` → `1e+3`（去尾零把指数吃了）、`format(1e308)` → `Infinity`；`move r1 1e300 0` 后 save 得到 `x="1e+3"`，读回差 297 个数量级 | 量级 ≥1e21 或 <1e-6 改用科学计数法（SVG 数字语法允许 `1e+300`）；几何运算后校验有限性，溢出报 `<attr> is out of range` 且不写入；新增 3 个单测 |
+| 2 | **undo 失败会把历史搞乱**：旧 `History` 先移栈后执行，undo 抛错后命令丢失，再 undo 会误撤上一条（配合 #1 的 Infinity 可真实触发） | `History` 改为**两阶段提交**（`peekUndo` → 执行成功 → `commitUndo`；redo 同构），失败则栈不变；与 #1 的有限性保护共同杜绝"文档坏了、历史也错位" |
+| 3 | **双 `ShapeFactory` 实例**：`EditorSession` 内部 new 一个，`main` 又给 `CommandRegistry`/`SvgReader` 各传一个 → 文档承诺的"插件只注册一处"不成立 | 构造函数注入**同一个**实例：`EditorSession(files, decoder, encoder, shapes)`；main 与全部测试同步更新 |
+| 4 | `<text><tspan>nested</tspan></text>` 的内容被静默丢弃；`viewBox` 被忽略，缺 width/height 时回退 800×600 | 文本按文档顺序展平 + 告警 `flattened nested elements in text#t1`；缺 width/height 时先回退 `viewBox`；新增 2 个单测 |
+| 5 | `canvas 400` 报 usage，而 `init 400` 成功——同族命令行为不一致 | `canvas <w>` 只改宽度、高度沿用当前值（`canvas <w> <h>` 仍为完整修改），附录 A.1/A.9 声明 |
+| 6 | 悬空 `in` 被当成 fill：`create rect r 0 0 10 10 in` → `fill="in"`；空 id 被接受：`create rect "" …` 造出 `id=""` | 前者报 `usage`（text 内容为 `"in"` 的合法场景不受影响），后者报 `invalid id: id must not be empty`；附录 B 补齐 |
+| 7 | 5000 层嵌套 `<g>` 的文件让 `read` 抛 `RangeError` 并打印堆栈退出 | XML 解析限深 256 层（报 `invalid svg: nesting too deep`）；`Repl` 顶层兜底非预期异常为 `error: internal error: …` 并继续 |
+| 8 | 中文 id 在 tree 里错列（`length` 按 1 列计，CJK 实际 2 列） | 新增 `cli/DisplayWidth`（全角按 2 列），tree 对齐改用它；新增 CJK 对齐 golden 用例 |
+| 9 | 文档/测试细节：附录 B 的 usage 示例与实现不符并缺 3 条错误；组件图有 3 条不存在的依赖边；`CommandHarness` 自实现 undo/redo 双栈（与产品 `History` 脱耦） | 以 `grep "new EditorError" src` 对齐附录 B；组件图删假边、改 `History` 方向、补 `NumberFormat`/`SvgDocument` 边并重新渲染；harness 改用真实 `History`；新增 11 个回归用例（跨父 `group`、save→read 回读、read 失败保留文档、失败编辑不清 redo、canvas 单参、空 id/悬空 `in`、大数、tspan/viewBox、深嵌套、CJK 对齐） |
+
+**被驳回/记为局限的**：
+
+* "提交时间戳聚簇"——承认：本工程按层推进，同一层内多条命令在秒级完成，时间戳确实成簇；**不伪造时间线**（诚信优先），但每一层都是可独立运行、可测试的提交，history 从 docs → 脚手架 → domain → commands → io → app → cli → tests 递进。
+* "交互式 TTY 外观未实测"——保留为已知局限（沙箱无 pty），只有配置行为的单测。
+* 2 条旧快照项（remote 未配、§3/§4 空白）——复核时已满足，无需修改。
 
 ## 3. 一致性自查
 
@@ -213,17 +235,17 @@
 
 ## 4. 质量保证手段
 
-**结论先行**：`npm test` 46 个用例全绿、`npm run typecheck` 无错误、`npm run build` 产物可运行、需求 §6/§6.1 的两段 transcript 逐行断言通过。信心来自以下六层，而不是"看起来能跑"：
+**结论先行**：`npm test` **59 个用例**全绿、`npm run typecheck` 无错误、`npm run build` 产物可运行、需求 §6/§6.1 的两段 transcript 逐行断言通过，第二轮独立评审提出的 9 个真问题全部修复并有回归用例。信心来自以下六层，而不是"看起来能跑"：
 
-### 4.1 分层单测（46 个用例）
+### 4.1 分层单测（59 个用例）
 
 | 层 | 用例数 | 覆盖点 |
 |---|---|---|
-| domain | 9（`test/domain`） | 五种叶子的 move/scale/set/属性视图、容器递归、画布拒绝图形操作、数字格式化（浮点噪声/整数/-0）、Provider 创建与未知类型报错 |
-| commands | 11（`test/commands`） | 10 个命令的 execute/undo/redo 回显、结构变化、错误路径（id 重复、容器不存在/类型不对、祖先环、重复目标、越界参数、非正因子） |
-| io | 8（`test/io`） | XML 声明/注释/实体/CDATA/自闭合/结构错误；缺 id、重复 id、未支持元素、非法几何、`transform`、未知 `data-kind`；属性顺序与转义；**编码→解码→编码 幂等** |
-| app | 7（`test/app`） | IO 闸门与解除、redo 栈清空、路径记忆（read/save/init）、告警顺序与计数口径、canvas 显示 vs 改尺寸、写失败不改状态、失败命令不入栈 |
-| cli | 9（`test/cli`） | 注册表 19 条完整性 + help 自动生成；分词（引号/未闭合）；banner/prompt 两种模式；**需求 §6 与 §6.1 的完整 transcript 逐行 golden**（含 save 文件内容逐字比对） |
+| domain | 11（`test/domain`） | 五种叶子的 move/scale/set/属性视图、容器递归、画布拒绝图形操作、数字格式化（浮点噪声/整数/-0/极大极小值）、几何溢出保护、Provider 创建与未知类型报错 |
+| commands | 14（`test/commands`） | 10 个命令的 execute/undo/redo 回显、结构变化、错误路径（id 重复、容器不存在/类型不对、祖先环、重复目标、越界参数、非正因子、悬空 `in`、空 id、跨父 `group`）；`History` 两阶段提交（undo 抛错不丢命令） |
+| io | 10（`test/io`） | XML 声明/注释/实体/CDATA/自闭合/结构错误/嵌套深度；缺 id、重复 id、未支持元素、非法几何、`transform`、未知 `data-kind`、`<tspan>` 展平、`viewBox` 回退；属性顺序与转义；**编码→解码→编码 幂等** |
+| app | 10（`test/app`） | IO 闸门与解除、redo 栈清空、路径记忆（read/save/init）、告警顺序与计数口径、canvas 显示 vs 改尺寸、写失败不改状态、失败命令不入栈 |
+| cli | 12（`test/cli`） | 注册表 19 条完整性 + help 自动生成；分词（引号/未闭合）；banner/prompt 两种模式；**需求 §6 与 §6.1 的完整 transcript 逐行 golden**（含 save 文件内容逐字比对）；save→read 回读、CJK 对齐、canvas 单参、悬空 `in`/空 id/超深嵌套文件的健壮性 |
 | 架构 | 2（`test/architecture.test.ts`） | 依赖矩阵、`import type` 规则、平台 API 白名单、无第三方依赖、依赖图无环 |
 
 ### 4.2 端到端 transcript 断言
@@ -246,7 +268,7 @@
 ### 4.6 手工冒烟与已知局限
 
 * 额外手工跑了一组边界会话（嵌套容器 scale、`front/back`、跨父 `group`、`addto` 环、`save → read` 回读、`set` 旧值不存在时 undo 移除属性），结果与附录 A 一致；
-* **已知局限（未覆盖）**：交互式 TTY 外观未实测（沙箱无法分配 pty，只有单测确认配置行为）；不支持 `<tspan>` 等嵌套文本、命名空间前缀、`clipPath`/`defs` 等非图形元素（按 A.7 跳过并告警）；无性能/压力测试；
+* **已知局限（未覆盖）**：交互式 TTY 外观未实测（沙箱无法分配 pty，只有单测确认配置行为）；不支持命名空间前缀、`clipPath`/`mask`/`defs` 等非图形元素（按 A.7 跳过并告警）；`<text>` 内的子元素文本会被展平、丢失内嵌样式；无性能/压力测试（当前规模 <1000 节点）；
 * 第二轮独立评审的结论与修复记录见 §2.4（若评审未提出需修复项，此处会写明"无阻断项"）。
 
 ---
@@ -274,6 +296,7 @@
 | `addto` | `rect#r1 moved into g#g1` | `rect#r1 moved back to svg` | 同 addto |
 | `front` / `back` | `rect#r1 moved to front` / `… to back` | `rect#r1 moved back to index 2` | 同 front/back |
 | `canvas`（无参） | `canvas 800x600` | —（只显示，不置闸门、不入历史） | — |
+| `canvas w` | `canvas resized to 1024x600`（只改宽度，高度沿用） | —（IO 命令） | — |
 | `canvas w h` | `canvas resized to 1024x768` | —（IO 命令） | — |
 | `init` | `canvas 800x600 created` | —（IO 命令） | — |
 | `read` | `read other.svg (7 elements)` | —（IO 命令） | — |
@@ -325,7 +348,7 @@ circle#c1  parent=g#markers
 
 * 2 空格缩进；空容器写 `<g id="x"/>`；
 * 属性顺序：`id` → 几何属性（各类型的固定顺序，见需求 §4.1）→ 样式属性（`fill`/`stroke`/`stroke-width`）→ 读入时保留的未知属性；
-* `text` 的内容为子文本节点（XML 转义 `& < > " '`）；
+* `text` 的内容为子文本节点（文本节点转义 `& < >`；属性值另需转义 `"`）；
 * 根元素写 `width`/`height`/`viewBox="0 0 W H"`。
 
 ### A.7 `read` 的容错
@@ -337,7 +360,10 @@ circle#c1  parent=g#markers
 | 未支持的 SVG 元素（如 `<polygon>`） | 跳过并警告 `warning: unsupported element <polygon> ignored` |
 | `<g>` 上的 `transform` | 本阶段无变换矩阵运算：`transform` **原样保留到 `extras` 并在 `save` 时写回**（不丢信息），`tree`/`show` 显示的是局部坐标，同时告警 `warning: transform not applied: g#diagram`。阶段 2 引入 transform 后改为真正烘焙 |
 | 未知 `data-kind`（如阶段 2 的 `box`，但插件未安装） | 按需求 §4.4 降级为普通 `<g>`（属性原样保留），告警 `warning: unknown shape kind 'box', kept as plain g` |
-| 缺少 `width`/`height` | 回退 800×600 |
+| 缺少 `width`/`height` | 先回退到 `viewBox` 的第 3/4 个数，再回退 800×600 |
+| `<text>` 内有子元素（如 `<tspan>`） | 按文档顺序**展平**文本（不丢内容），并告警 `warning: flattened nested elements in text#t2` |
+| 嵌套过深（> 256 层） | 报 `error: invalid svg: nesting too deep (max 256)`，不打印堆栈、不崩溃 |
+| `id` 为空字符串 | 视同"未命名"，重新分配并告警 |
 
 ### A.8 与需求文档示例的差异裁定
 
@@ -360,7 +386,11 @@ circle#c1  parent=g#markers
 | `init` / `read` 与历史 | 二者会**替换文档并清空 undo/redo 栈**，并置"IO 闸门"；随后 undo/redo 一律报 `… not allowed after io command`，直到下一条成功的编辑命令解除 |
 | `init` 默认尺寸 | 参数省略时 `canvas 800x600 created`（需求 §3：默认 800×600）；`init` 与 `read` 之后当前文档即该文档 |
 | `save` | 不改变文档内容与历史，但同样属于 IO 命令：置闸门（需求 §4.3 明确列出 save） |
-| `canvas` 带参 | 修改画布尺寸 = IO 命令：置闸门、清空历史；无参只显示，不置闸门 |
+| `canvas` 带参 | 修改画布尺寸 = IO 命令：置闸门、清空历史；无参只显示，不置闸门；**单参只改宽度**、高度沿用当前值（与 `init` 单参行为一致） |
+| id 合法性 | `create`/`group` 的新 id 不得为空字符串：`error: invalid id: id must not be empty` |
+| 悬空 `in` | `create rect r 0 0 10 10 in` 视为语法错误（不能把 `in` 当成 fill 值）：报 `usage: …` |
+| 几何溢出 | 坐标/尺寸运算后必须是有限数，否则 `error: <attr> is out of range`，且不写入 Infinity |
+| 未预期异常 | REPL 顶层兜底为 `error: internal error: <detail>` 并继续，不打印堆栈退出 |
 | `help` | 显示全部命令与语法，不属于 IO 命令、不置闸门 |
 | 注释与空行 | 行首（去前导空白后）为 `#` 的行视为注释；空行忽略；`#` 出现在行中（如颜色 `#4a90d9`）不是注释 |
 | `group` 插入位置 | 依次从各自原父容器摘出（顺序 = 命令行给出的顺序），新 `<g>` **追加到"第一个目标所在父容器"的末尾**；允许成员来自不同父容器（需求 §3 的"各自原父容器"） |
@@ -396,9 +426,16 @@ circle#c1  parent=g#markers
 | 写文件失败 | `cannot write file: a.svg` | 需求 §4.2 |
 | 未 init/read | `no document. use 'init' or 'read' first` | 需求 §4.2 |
 | 未知命令 | `unknown command: foo` | 补充 |
-| 参数个数/语法错误 | `usage: create rect <id> <x> <y> <w> <h> [fill]` | 补充 |
+| 参数个数/语法错误 | `usage: create rect <id> <x> <y> <width> <height> [fill]` | 补充 |
 | 数字非法 | `invalid number: abc` | 补充 |
 | 尺寸为负 | `width must be non-negative`（同类：`height`/`r`/`rx`/`ry`） | 补充 |
+| id 为空 | `invalid id: id must not be empty` | 补充 |
+| 样式值为空 | `invalid value: <attr>` | 补充 |
+| 引号未闭合 | `unterminated quote in command` | 补充 |
+| 画布尺寸非正 | `canvas size must be positive` | 补充 |
+| 几何运算溢出 | `<attr> is out of range` | 补充 |
+| SVG 嵌套过深 | `invalid svg: nesting too deep (max 256)` | 补充 |
+| 未预期异常兜底 | `internal error: <detail>` | 补充（兜底，不应出现） |
 | `save` 无路径且文档非 read 而来 | `no file path: use 'save <file.svg>'` | 补充 |
 | `undo`/`redo` 无历史 | `nothing to undo` / `nothing to redo` | 补充 |
 | IO 后 undo/redo | `undo not allowed after io command` / `redo not allowed after io command` | 需求 §4.3（redo 文案为补充） |

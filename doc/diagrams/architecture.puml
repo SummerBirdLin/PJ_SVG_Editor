@@ -32,7 +32,7 @@ package "domain（领域层）" {
   [Rect / Circle / Ellipse\nLine / Text] as Leaves
   [ShapeFactory\n（类型名分派 ②）] as Factory
   [ShapeProvider 家族] as Providers
-  [EditorError] as Err
+  [NumberFormat / EditorError] as Utils
 }
 
 package "ports（接口层）" {
@@ -55,9 +55,6 @@ package "组合根" {
 
 Repl --> Tokenizer
 Repl --> CmdReg
-Repl --> TreePresenter
-Repl --> ShowPresenter
-Repl --> HelpPresenter
 CmdReg --> CmdFamily
 CmdReg --> Actions
 Actions --> Session
@@ -71,15 +68,15 @@ HelpPresenter --> CmdReg : usage/summary
 Session --> History
 Session --> Factory
 Session --> Shape
+Session --> Utils
 Session --> FileStore
 Session --> Decoder
 Session --> Encoder
 
 CmdFamily --> Shape
 CmdFamily --> Factory
-CmdFamily --> History : undo 栈元素
-
-History --> CmdFamily
+CmdFamily --> Utils
+History --> CmdFamily : 持有 Command
 
 Reader ..|> Decoder
 Writer ..|> Encoder
@@ -88,8 +85,10 @@ Reader --> Xml
 Writer --> Xml
 Reader --> Ids
 Reader --> Factory
+Reader --> Doc
+Reader --> Utils
 Writer --> Shape
-Reader --> Err
+Writer --> Doc
 
 Container <|-- Canvas
 Container <|-- G
