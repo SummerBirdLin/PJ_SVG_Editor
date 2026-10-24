@@ -16,6 +16,10 @@ export class CanvasAction implements Runnable {
     if (args.length === 0) {
       return new CanvasAction(null, null);
     }
+    if (args.length === 1) {
+      // `canvas <w>`：只改宽度，高度沿用当前值（与 init 单参行为一致）
+      return new CanvasAction(NumberFormat.parse(args[0] ?? ''), null);
+    }
     if (args.length === 2) {
       return new CanvasAction(NumberFormat.parse(args[0] ?? ''), NumberFormat.parse(args[1] ?? ''));
     }
@@ -32,7 +36,7 @@ export class CanvasAction implements Runnable {
   }
 
   run(session: EditorSession): string[] {
-    if (this.width === null || this.height === null) {
+    if (this.width === null) {
       return [session.canvasSize()];
     }
     return [session.resizeCanvas(this.width, this.height)];

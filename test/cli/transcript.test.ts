@@ -193,3 +193,23 @@ test('transcript：错误路径（未 init、未知命令、参数错误、文�
     '',
   ].join('\n'));
 });
+
+test('transcript: canvas 单参只改宽度（高度沿用），双参才完整修改', async () => {
+  const harness = new CliHarness();
+  const output = await harness.run([
+    'init 800 600',
+    'canvas 400',
+    'canvas',
+    'canvas 500 300',
+    'canvas',
+  ].join('\n'));
+
+  assert.equal(output, [
+    'canvas 800x600 created',
+    'canvas resized to 400x600',
+    'canvas 400x600',
+    'canvas resized to 500x300',
+    'canvas 500x300',
+    '',
+  ].join('\n'));
+});

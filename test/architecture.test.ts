@@ -51,29 +51,34 @@ function moduleOf(file: string): ModuleName {
   return firstSegment as ModuleName;
 }
 
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+/**
+ * 支持多行 import / `export … from` / 副作用 import；
+ * 先去掉注释，避免把注释里的 import 当成真实依赖。
+ */
 function parseImports(file: string): ImportStatement[] {
-  const source = readFileSync(file, 'utf8');
+  const source = stripComments(readFileSync(file, 'utf8'));
   const statements: ImportStatement[] = [];
-  for (const line of source.split('\n')) {
-    const fromMatch = /^\s*import\s+(type\s+)?.*\bfrom\s+['"]([^'"]+)['"]/.exec(line);
-    if (fromMatch !== null) {
-      statements.push({
-        fromFile: file,
-        fromModule: moduleOf(file),
-        specifier: fromMatch[2] ?? '',
-        typeOnly: fromMatch[1] !== undefined,
-      });
-      continue;
-    }
-    const bareMatch = /^\s*import\s+['"]([^'"]+)['"]/.exec(line);
-    if (bareMatch !== null) {
-      statements.push({
-        fromFile: file,
-        fromModule: moduleOf(file),
-        specifier: bareMatch[1] ?? '',
-        typeOnly: false,
-      });
-    }
+  const pattern = /(?:^|\n)\s*(?:import|export)\s+(type\s+)?[\s\S]*?\bfrom\s+['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(pattern)) {
+    statements.push({
+      fromFile: file,
+      fromModule: moduleOf(file),
+      specifier: match[2] ?? '',
+      typeOnly: match[1] !== undefined,
+    });
+  }
+  const barePattern = /(?:^|\n)\s*import\s+['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(barePattern)) {
+    statements.push({
+      fromFile: file,
+      fromModule: moduleOf(file),
+      specifier: match[1] ?? '',
+      typeOnly: false,
+    });
   }
   return statements;
 }

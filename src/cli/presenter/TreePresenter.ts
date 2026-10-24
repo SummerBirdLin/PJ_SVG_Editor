@@ -2,6 +2,7 @@ import { EditorError } from '../../domain/EditorError.js';
 import type { SvgDocument } from '../../domain/SvgDocument.js';
 import { ContainerShape } from '../../domain/shape/ContainerShape.js';
 import type { Shape } from '../../domain/shape/Shape.js';
+import { DisplayWidth } from '../DisplayWidth.js';
 
 /**
  * `tree` 的格式化（Strategy）：只读模型、不写模型。
@@ -10,6 +11,8 @@ import type { Shape } from '../../domain/shape/Shape.js';
  * 组内 label 补齐到"最长 label + 2"；无内联属性的行不补尾随空格。
  */
 export class TreePresenter {
+  private readonly displayWidth = new DisplayWidth();
+
   render(document: SvgDocument, rootId?: string): string[] {
     if (rootId === undefined) {
       const lines: string[] = [`svg (${document.canvas().sizeText()})`];
@@ -33,7 +36,7 @@ export class TreePresenter {
     if (children.length === 0) {
       return [];
     }
-    const longestLabel = Math.max(...children.map((child) => child.label().length));
+    const longestLabel = Math.max(...children.map((child) => this.displayWidth.width(child.label())));
     const lines: string[] = [];
     children.forEach((child, index) => {
       const isLast = index === children.length - 1;
@@ -55,6 +58,6 @@ export class TreePresenter {
     if (longestLabel === null) {
       return `${prefix}${label} ${inline}`;
     }
-    return `${prefix}${label.padEnd(longestLabel + 2)}${inline}`;
+    return `${prefix}${this.displayWidth.padEnd(label, longestLabel + 2)}${inline}`;
   }
 }

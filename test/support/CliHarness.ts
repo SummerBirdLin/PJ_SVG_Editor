@@ -19,7 +19,7 @@ export class CliHarness {
 
   constructor() {
     const shapes = new ShapeFactory();
-    const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter());
+    const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter(), shapes);
     const registry = new CommandRegistry(shapes);
     this.repl = new Repl(new Tokenizer(), registry, session, this.output);
   }

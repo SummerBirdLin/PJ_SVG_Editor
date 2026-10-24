@@ -26,7 +26,7 @@ import type { CommandEntry } from './CommandEntry.js';
 import type { Runnable } from './Runnable.js';
 
 /**
- * 命令注册表：**按名分派的唯一一处**（需求允许的两处之一，已标注为待重构）。
+ * 命令注册表：**命令名分派（需求允许的两处之一，另一处是 ShapeFactory）**，已标注为待重构。
  *
  * 19 条命令全部登记在这里：4 个文档命令 + 10 个编辑命令 + 3 个显示命令 + undo/redo。
  * Repl 因此不需要任何 `if/else` 特判，`help` 也直接由这张表生成。

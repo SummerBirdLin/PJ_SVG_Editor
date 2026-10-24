@@ -65,10 +65,13 @@ export class Repl {
           this.output.write(`${outputLine}\n`);
         }
       } catch (error) {
-        if (!(error instanceof EditorError)) {
-          throw error;
+        if (error instanceof EditorError) {
+          this.output.write(`error: ${error.message}\n`);
+        } else {
+          // 兜底：任何未预期异常都只输出一行错误，REPL 继续运行而不是打印堆栈退出
+          const detail = error instanceof Error ? error.message : String(error);
+          this.output.write(`error: internal error: ${detail}\n`);
         }
-        this.output.write(`error: ${error.message}\n`);
       }
       this.writePrompt();
     }

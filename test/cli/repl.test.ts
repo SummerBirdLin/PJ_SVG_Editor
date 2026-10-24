@@ -12,7 +12,7 @@ import { BufferOutput } from '../support/BufferOutput.js';
 
 function makeRepl(output: BufferOutput, options: { banner?: string; prompt?: string } = {}): Repl {
   const shapes = new ShapeFactory();
-  const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter());
+  const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter(), shapes);
   const registry = new CommandRegistry(shapes);
   return new Repl(new Tokenizer(), registry, session, output, options);
 }
