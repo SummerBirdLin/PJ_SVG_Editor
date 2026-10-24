@@ -274,3 +274,36 @@ test('front/back: 调整同级顺序，undo 回到原索引', () => {
   assert.equal(harness.undo(), 'rect#c moved back to index 2');
   assert.deepEqual(childIds(harness), ['a', 'b', 'c']);
 });
+
+test('create: 悬空 in 与空 id 都报错（不会被当成 fill 或空名字静默接受）', () => {
+  const harness = new CommandHarness();
+  assert.throws(() => create(harness, ['rect', 'r1', '0', '0', '10', '10', 'in']), /usage: create/);
+  assert.throws(() => create(harness, ['rect', '', '0', '0', '10', '10']), /invalid id: id must not be empty/);
+  assert.throws(
+    () => harness.run(GroupCommand.parse(['', 'a', 'b'], harness.parseContext)),
+    /invalid id: id must not be empty/,
+  );
+});
+
+test('group: 成员来自不同父容器时按命令行顺序收编，新容器追加到第一个目标父容器末尾', () => {
+  const harness = new CommandHarness();
+  create(harness, ['g', 'g1']);
+  create(harness, ['g', 'g2']);
+  create(harness, ['rect', 'a', '0', '0', '1', '1', 'in', 'g1']);
+  create(harness, ['circle', 'b', '5', '5', '2']);
+  create(harness, ['rect', 'c', '9', '9', '1', '1', 'in', 'g2']);
+
+  assert.equal(
+    harness.run(GroupCommand.parse(['merged', 'b', 'c', 'a'], harness.parseContext)),
+    'g#merged created with 3 children',
+  );
+  assert.deepEqual(childIds(harness), ['g1', 'g2', 'merged']);
+  assert.deepEqual(childIds(harness, 'merged'), ['b', 'c', 'a']);
+  assert.deepEqual(childIds(harness, 'g1'), []);
+  assert.deepEqual(childIds(harness, 'g2'), []);
+
+  assert.equal(harness.undo(), 'g#merged dissolved (3 children restored)');
+  assert.deepEqual(childIds(harness), ['g1', 'g2', 'b']);
+  assert.deepEqual(childIds(harness, 'g1'), ['a']);
+  assert.deepEqual(childIds(harness, 'g2'), ['c']);
+});

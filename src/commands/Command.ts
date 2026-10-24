@@ -15,6 +15,14 @@ export abstract class Command {
 
   abstract undo(context: CommandContext): string;
 
+  /** 新建 id（create/group）的非空校验：空 id 不是合法的 SVG id。 */
+  protected static requireId(id: string): string {
+    if (id.trim().length === 0) {
+      throw new EditorError('invalid id: id must not be empty');
+    }
+    return id;
+  }
+
   /** 按 id 定位，找不到报 `no such shape: <id>`。 */
   protected static locateOrFail(document: SvgDocument, id: string): LocatedShape {
     const found = document.locate(id);

@@ -38,7 +38,7 @@ export class CreateCommand extends Command {
       throw new EditorError(`usage: ${CreateCommand.usage}`);
     }
     const typeName = args[0] ?? '';
-    const shapeId = args[1] ?? '';
+    const shapeId = Command.requireId(args[1] ?? '');
     const provider = context.shapes.providerForType(typeName);
 
     let rest = args.slice(2);
@@ -46,6 +46,9 @@ export class CreateCommand extends Command {
     if (rest.length >= 2 && rest[rest.length - 2] === 'in') {
       containerId = rest[rest.length - 1] ?? null;
       rest = rest.slice(0, rest.length - 2);
+    } else if (rest.length > 0 && rest[rest.length - 1] === 'in' && !provider.hasTextContent) {
+      // 悬空的 `in`（如 `create rect r 0 0 10 10 in`）不能被当成 fill 值静默吞掉
+      throw new EditorError(`usage: ${CreateCommand.usage}`);
     }
 
     const creation = provider.creationAttributes;

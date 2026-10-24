@@ -42,7 +42,7 @@ export class GroupCommand extends Command {
     if (args.length < 3) {
       throw new EditorError(`usage: ${GroupCommand.usage}`);
     }
-    return new GroupCommand(args[0] ?? '', args.slice(1));
+    return new GroupCommand(Command.requireId(args[0] ?? ''), args.slice(1));
   }
 
   execute(context: CommandContext): string {
