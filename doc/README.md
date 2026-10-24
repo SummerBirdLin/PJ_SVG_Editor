@@ -18,8 +18,8 @@
 |---|---|---|---|
 | **domain**<br>领域层 | `src/domain/` | 图形树与几何语义：`Shape` 抽象基类、`ContainerShape`/`CanvasShape`/`GShape`、5 种叶子图形；`SvgDocument`；`ShapeFactory` + 6 个 `ShapeProvider`；属性白名单与 `set` 语义；统一错误类型 `EditorError`。**不依赖任何其他模块**（含 Node API）。 | `SvgDocument`、`Shape` 家族、`ShapeFactory`、`EditorError` |
 | **commands**<br>命令层 | `src/commands/` | 10 个编辑命令（`CreateCommand`/`DeleteCommand`/`MoveCommand`/`ScaleCommand`/`SetCommand`/`GroupCommand`/`UngroupCommand`/`AddToCommand`/`FrontCommand`/`BackCommand`），每个命令自带 `execute`/`undo`（重做 = 再次 `execute`）；命令内部保存逆操作所需的局部状态（被删子树、原父与原索引、旧属性值）；`History` 维护 undo/redo 双栈。每个命令类还自带 `static parse(tokens, ctx)`（命令行语法 → 命令对象）、`commandName`/`usage`/`summary`，供注册表与 `help` 复用；回显句式由命令产生，数字/标签格式复用 domain 的 `NumberFormat`/`Shape.label()`。 | `Command` 抽象类、`History`、各命令类（含静态语法入口） |
-| **ports**<br>接口层 | `src/ports/` | 两条抽象边界：`FileStore`（读/写文本文件）、`SvgCodec`（`SvgDocument` ↔ SVG 文本，解码结果携带 warnings）。只有接口与类型，无实现、无行为。 | `FileStore`、`SvgCodec` |
-| **io**<br>基础设施层 | `src/io/` | `NodeFileStore`（Node `fs` 适配）、`SvgReader` / `SvgWriter`（实现 `SvgCodec`）、内部最小 XML 解析/输出（`XmlParser`/`XmlWriter`），以及对缺 id、重复 id、未支持元素、`transform` 的告警。 | `NodeFileStore`、`SvgReader`、`SvgWriter` |
+| **ports**<br>接口层 | `src/ports/` | 三条抽象边界：`FileStore`（读/写文本文件）、`SvgDecoder`（SVG 文本 → 文档，结果携带 warnings）、`SvgEncoder`（文档 → SVG 文本）。只有接口与类型，无实现、无行为。 | `FileStore`、`SvgDecoder`、`SvgEncoder` |
+| **io**<br>基础设施层 | `src/io/` | `NodeFileStore`（Node `fs` 适配）、`SvgReader`（实现 `SvgDecoder`）、`SvgWriter`（实现 `SvgEncoder`）、内部最小 XML 解析/输出（`XmlParser`/`XmlWriter`）、`IdAllocator`（缺 id/重复 id 分配），以及对未支持元素、`transform`、未知 `data-kind` 的告警。 | `NodeFileStore`、`SvgReader`、`SvgWriter` |
 | **app**<br>应用层 | `src/app/` | `EditorSession` 门面：持有当前文档与 `History`；处理 `init`/`read`/`save`/`canvas` 四个文档命令；执行编辑命令并写入历史；维护"IO 命令后禁止 undo/redo"闸门与"读入路径"记忆。 | `EditorSession` |
 | **cli**<br>表现/适配层 | `src/cli/` | `Repl`（`svg>` 逐行读入、`#` 注释、`exit`/`quit` 元命令）、`Tokenizer`（引号感知分词）、`CommandRegistry`（**19 条命令名 → 命令/动作**，按名分派之一，也是 `help` 的数据源）、9 个会话动作类（`InitAction`/`ReadAction`/`SaveAction`/`CanvasAction`/`UndoAction`/`RedoAction`/`TreeAction`/`ShowAction`/`HelpAction`）+ `EditAction`（把编辑命令包成可执行动作）、`TreePresenter`/`ShowPresenter`/`HelpPresenter`。 | `Repl` |
 | **组合根** | `src/main.ts` | 唯一允许 import 全部模块的地方：装配 `NodeFileStore`/`SvgReader`/`SvgWriter` → `EditorSession` → `Repl`。 | `main()` |
@@ -30,7 +30,7 @@
 
 关键点：
 
-* **内核与外部世界之间只有两个接口**（`FileStore`、`SvgCodec`）。把文件路径、XML 词法、Node API 全部挡在 `io` 里，`domain` 可以用纯内存方式单测。
+* **内核与外部世界之间只有三个接口**（`FileStore`、`SvgDecoder`、`SvgEncoder`）。把文件路径、XML 词法、Node API 全部挡在 `io` 里，`domain` 可以用纯内存方式单测。
 * **展示文本的归属写在明处**：`tree`/`show`/`help` 的排版由 `cli` 下的三个 `Presenter` 生成；编辑命令的回显句式在命令层（需求逐条规定了句式，见附录 A.1），命令只复用 domain 的 `label()`/`NumberFormat` 做格式化。**模型不依赖 CLI/IO**：`Shape.label()`/内联摘要是领域对象的文本表示（相当于 `toString`），不是 IO 依赖。因此"改 tree 的排版"只动 Presenter，"改回显句式"只动命令，都不会触碰图形几何语义。
 * **`CreateCommand` 不自己解析"每种类型几个参数"**：它向 `ShapeProvider` 要"创建该类型需要的属性序列（名字 + 是否必填）"，据此把位置参数按序填入并生成 usage；`read` 解析 SVG 属性用的是同一份属性定义（见 §1.2 Factory）。CLI 语法（位置顺序、可选性）留在命令层，domain 只认识属性名与属性值。
 * **两条通道（CLI / 未来的 GUI、agent）共享的是"命令 + 会话"**：命令对象携带语义与逆操作，`EditorSession` 负责历史与文档生命周期；CLI 只是其中一种"把动作变成文本"的适配器。
@@ -52,7 +52,7 @@
 | **Factory + Provider（注册表）** | `domain/shape/ShapeFactory.ts`、`domain/shape/provider/*.ts` | 类型名 → 构造逻辑。`ShapeProvider` 只描述领域事实：`typeName`/`svgTag`/**创建该类型需要的属性序列（名字 + 是否必填）**/`create(id, init)`/`settableAttributes()`。`CreateCommand` 用这份序列把 CLI 位置参数按序填入，`SvgReader` 用同一份定义解析 SVG 属性；"位置参数的顺序与 usage 文本"留在命令层，domain 不认识 CLI 方言。**按名分派之一（允许），已在 §1.3 标注为待重构**：阶段 2 改为运行时插件注册（ShapeProvider 插槽）。 | 阶段 2 `box` 插件的落点 |
 | **Registry** | `cli/CommandRegistry.ts` | 命令名 → 命令/动作（19 条），既做分派也是 `help` 的数据源（每类自带 `usage`/`summary`）。**按名分派之二（允许），标注待重构**：命令表增长后改为扫描注册。 | 需求允许的两处之一 |
 | **Facade** | `app/EditorSession.ts` | 对 CLI 只暴露"用例"级方法，隐藏文档替换、历史记录、IO 调用与 undo 闸门的编排顺序。 | 三通道复用的核心 |
-| **Adapter** | `io/NodeFileStore.ts`、`io/SvgReader.ts`、`io/SvgWriter.ts`；`cli/EditAction.ts`（命令 → 可执行动作） | `FileStore`/`SvgCodec` 接口 ← Node `fs` 与自写 XML 实现；命令对象 ← 统一动作协议。 | 便于测试用内存实现替换 |
+| **Adapter** | `io/NodeFileStore.ts`、`io/SvgReader.ts`、`io/SvgWriter.ts`；`cli/EditAction.ts`（命令 → 可执行动作） | `FileStore`/`SvgDecoder`/`SvgEncoder` 接口 ← Node `fs` 与自写 XML 实现；命令对象 ← 统一动作协议。 | 便于测试用内存实现替换 |
 | **Strategy** | `cli/*Presenter.ts` | 同一份文档的三种展示（tree / show / help）；将来 GUI 或 JSON 输出只需新增 Presenter。 | 展示方式是最易变的部分，故抽离 |
 | **Template Method** | `domain/shape/Shape.ts` | 基类给出"标签、属性串、内联摘要、明细行"的骨架（`label()`、`attributes()`、`inlineText()`、`detailLines()`），子类只填自己的几何字段与 `positionText()`，避免每个子类重复拼字符串。 | 5 个叶子图形共享 |
 
@@ -77,7 +77,7 @@
 1. **domain 零依赖**是整份架构的地基：图形语义是本题真正的复杂度所在，它必须能被单测、能被未来的 GUI/agent 直接复用，不能因为"要读个文件"而被 Node API 污染。
 2. **commands 只依赖 domain**：命令是"对模型做了什么"的封装，一旦命令开始 import 文件或 REPL，undo/redo 就再也无法脱离 CLI 测试。
 3. **ports 只依赖 domain 的类型**：接口签名里出现 `SvgDocument` 是必要的；但接口不含行为，因此它不构成"实现依赖"。
-4. **io 反向依赖 ports**（实现接口），**app 只依赖 ports 不依赖 io**：`EditorSession` 在测试里可以注入内存 `FileStore` 与假 `SvgCodec`，IO 命令（init/read/save/canvas 的闸门、路径记忆）不必碰真实磁盘即可测。
+4. **io 反向依赖 ports**（实现接口），**app 只依赖 ports 不依赖 io**：`EditorSession` 在测试里可以注入内存 `FileStore` 与假 codec，IO 命令（init/read/save/canvas 的闸门、路径记忆）不必碰真实磁盘即可测（`test/app/session.test.ts` 即如此）。
 5. **cli 只依赖 app + commands + domain**，不碰 io：REPL 不该知道文件是怎么读的。
 6. **组合根是唯一的例外**：装配是"知道所有人"的职责，把它限制在 `src/main.ts` 一个文件里，架构就不会因为"顺手 import"而腐化。
 
@@ -96,7 +96,7 @@
 |---|---|---|---|
 | 1 | **图形类型集合** | 阶段 2 出现 `box` 插件、更多图元；类型可能来自第三方插件 | **留了**：`ShapeFactory` + `ShapeProvider` 双层结构。Provider 只描述领域事实（`typeName`/`svgTag`/创建属性序列/`create`/可设置属性），新增类型只加一个 Provider 文件、一行注册，`CreateCommand` 与 `SvgReader` 都不用动；CLI 位置参数与 usage 文本留在命令层，插件作者不必懂 CLI 方言。序列化侧 `Shape.svgTag()` 与 `Shape.extraAttributes()` 是虚方法，`box` 可在此写 `data-kind="box"`（本阶段无插件类型，故不产生该属性）。 |
 | 2 | **展示/输出通道** | 从 CLI 文本扩展到 GUI 画布、JSON 输出、agent 通道 | **留了**：tree/show/help 已抽成 `Presenter`（Strategy），新增通道只加类。**不留**：编辑命令的回显文本没有抽 `ResultPresenter`——需求逐条规定了句式（附录 A.1），再抽一层会引入"按结果类型分派"的第三个分派点，与需求"只允许两处按名分派"相冲突；GUI/agent 通道直接读 `EditorSession` 的文档与命令对象即可，不需要自然语言。 |
-| 3 | **存储与来源** | 文件 → 内存字符串/远端仓库/浏览器下载 | **留了**：`FileStore` 接口只有 `readText`/`writeText`，换实现即可；`SvgCodec` 与 Node 无关。 |
+| 3 | **存储与来源** | 文件 → 内存字符串/远端仓库/浏览器下载 | **留了**：`FileStore` 接口只有 `readText`/`writeText`，换实现即可；`SvgDecoder`/`SvgEncoder` 与 Node 无关。 |
 | 4 | **寻址方式** | 从 `id` 改为结构路径寻址（`/canvas/g1/rect[2]`，类似 XPath） | **决定不留**：本阶段约定就是 id 唯一。id → (节点, 父节点, 索引) 的定位收敛在 `SvgDocument.locate()` 一个方法里（`findById` 只是它的投影），命令层只用 `locate()`；将来改路径寻址只需换这一个方法，`group`/`addto`/`delete` 这类需要父节点与索引的命令不受影响。 |
 | 5 | **容器变换语义** | 用 `<g transform="translate/scale">` 代替"递归改子坐标" | **决定不留矩阵语义**：需求要求 `tree` 内联绝对坐标、`move` 作用于容器时"整体平移"，直接改子坐标与之一致，序列化也简单。**但对读入的文件不静默丢信息**：`transform` 原样进 `extras`、`save` 写回，`tree`/`show` 显示的仍是局部坐标，并给出 `warning: transform not applied: g#diagram`。若将来实现矩阵语义，改动集中在 `GShape.move/scale` 与 `SvgWriter` 两处。 |
 | 6 | **撤销策略** | 命令数激增后，逐命令实现 `undo` 容易出错 → 整文档快照（Memento 全量） | **决定不留全量快照**：Command 模式是评分硬要求，且逆操作比快照省内存。`History` 的接口（`record`/`undo`/`redo`/`clear`）不随策略变化，替换命令实现即可。`scale` 的 undo 存"子树旧几何"而不是按 `1/factor` 反算，避免浮点漂移。 |

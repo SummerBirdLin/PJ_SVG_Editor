@@ -37,7 +37,8 @@ package "domain（领域层）" {
 
 package "ports（接口层）" {
   [FileStore] as FileStore
-  [SvgCodec] as Codec
+  [SvgDecoder] as Decoder
+  [SvgEncoder] as Encoder
 }
 
 package "io（基础设施适配层）" {
@@ -45,6 +46,7 @@ package "io（基础设施适配层）" {
   [SvgReader] as Reader
   [SvgWriter] as Writer
   [XmlParser / XmlWriter] as Xml
+  [IdAllocator] as Ids
 }
 
 package "组合根" {
@@ -70,7 +72,8 @@ Session --> History
 Session --> Factory
 Session --> Shape
 Session --> FileStore
-Session --> Codec
+Session --> Decoder
+Session --> Encoder
 
 CmdFamily --> Shape
 CmdFamily --> Factory
@@ -78,11 +81,12 @@ CmdFamily --> History : undo 栈元素
 
 History --> CmdFamily
 
-Reader ..|> Codec
-Writer ..|> Codec
+Reader ..|> Decoder
+Writer ..|> Encoder
 NodeFS ..|> FileStore
 Reader --> Xml
 Writer --> Xml
+Reader --> Ids
 Reader --> Factory
 Writer --> Shape
 Reader --> Err

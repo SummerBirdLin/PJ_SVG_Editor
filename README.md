@@ -20,8 +20,8 @@ svg> create circle c1 100 100 20 red
 circle#c1 created
 svg> tree
 svg (800x600)
-├── rect#bg   x=0 y=0 w=800 h=600 fill=#ffffff
-└── circle#c1 cx=100 cy=100 r=20 fill=red
+├── rect#bg    x=0 y=0 w=800 h=600 fill=#ffffff
+└── circle#c1  cx=100 cy=100 r=20 fill=red
 svg> save demo.svg
 saved to demo.svg (2 elements)
 ```
