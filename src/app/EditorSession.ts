@@ -27,7 +27,7 @@ export class EditorSession {
 
   private readonly historyValue = new History();
 
-  private readonly shapesValue = new ShapeFactory();
+  private readonly shapesValue: ShapeFactory;
 
   private readonly files: FileStore;
 
@@ -35,10 +35,15 @@ export class EditorSession {
 
   private readonly encoder: SvgEncoder;
 
-  constructor(files: FileStore, decoder: SvgDecoder, encoder: SvgEncoder) {
+  /**
+   * @param shapes 组合根注入的**同一个** ShapeFactory：保证 `create` 解析与执行、
+   *   `read` 解析、插件注册都走这一份实例（否则注册了插件也创建不出来）。
+   */
+  constructor(files: FileStore, decoder: SvgDecoder, encoder: SvgEncoder, shapes: ShapeFactory) {
     this.files = files;
     this.decoder = decoder;
     this.encoder = encoder;
+    this.shapesValue = shapes;
   }
 
   get shapes(): ShapeFactory {
@@ -102,12 +107,15 @@ export class EditorSession {
     return `canvas ${NumberFormat.format(canvas.width())}x${NumberFormat.format(canvas.height())}`;
   }
 
-  resizeCanvas(width: number, height: number): string {
+  /** `canvas <w>` 只改宽度时，高度沿用当前值（评审发现与 init 单参行为不一致）。 */
+  resizeCanvas(width: number | null, height: number | null): string {
     const canvas = this.document.canvas();
-    canvas.resize(width, height);
+    const nextWidth = width ?? canvas.width();
+    const nextHeight = height ?? canvas.height();
+    canvas.resize(nextWidth, nextHeight);
     this.historyValue.clear();
     this.ioBlocked = true;
-    return `canvas resized to ${NumberFormat.format(width)}x${NumberFormat.format(height)}`;
+    return `canvas resized to ${NumberFormat.format(nextWidth)}x${NumberFormat.format(nextHeight)}`;
   }
 
   execute(command: Command): string {
@@ -122,11 +130,13 @@ export class EditorSession {
     if (this.ioBlocked) {
       throw new EditorError('undo not allowed after io command');
     }
-    const command = this.historyValue.popForUndo();
+    const command = this.historyValue.peekUndo();
     if (command === null) {
       throw new EditorError('nothing to undo');
     }
-    return command.undo(this.context());
+    const message = command.undo(this.context());
+    this.historyValue.commitUndo();
+    return message;
   }
 
   redo(): string {
@@ -134,11 +144,13 @@ export class EditorSession {
     if (this.ioBlocked) {
       throw new EditorError('redo not allowed after io command');
     }
-    const command = this.historyValue.popForRedo();
+    const command = this.historyValue.peekRedo();
     if (command === null) {
       throw new EditorError('nothing to redo');
     }
-    return command.execute(this.context());
+    const message = command.execute(this.context());
+    this.historyValue.commitRedo();
+    return message;
   }
 
   private context(): CommandContext {

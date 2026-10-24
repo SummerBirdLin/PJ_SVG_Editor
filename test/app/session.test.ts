@@ -32,7 +32,7 @@ class MemoryFileStore implements FileStore {
 function makeSession(): { session: EditorSession; files: MemoryFileStore } {
   const files = new MemoryFileStore();
   const shapes = new ShapeFactory();
-  const session = new EditorSession(files, new SvgReader(shapes), new SvgWriter());
+  const session = new EditorSession(files, new SvgReader(shapes), new SvgWriter(), shapes);
   return { session, files };
 }
 
@@ -40,7 +40,7 @@ function create(session: EditorSession, args: string[]): string {
   return session.execute(CreateCommand.parse(args, { shapes: session.shapes }));
 }
 
-test('未 init/read 时所有命令报 no document', () => {
+test('未 init/read 时 undo/redo/编辑命令报 no document', () => {
   const { session } = makeSession();
   const expected = "no document. use 'init' or 'read' first";
   assert.throws(() => session.undo(), (error: unknown) => error instanceof EditorError && error.message === expected);
@@ -122,4 +122,30 @@ test('execute 命令失败时不改变历史（失败命令不入栈）', () => 
   create(session, ['rect', 'r1', '0', '0', '10', '10']);
   assert.throws(() => session.execute(MoveCommand.parse(['r9', '1', '1'], { shapes: session.shapes })), /no such shape/);
   assert.equal(session.undo(), 'rect#r1 deleted');
+});
+
+test('canvas 单参：只改宽度，高度沿用当前值', () => {
+  const { session } = makeSession();
+  session.init(800, 600);
+  assert.equal(session.resizeCanvas(400, null), 'canvas resized to 400x600');
+  assert.equal(session.canvasSize(), 'canvas 400x600');
+  assert.equal(session.resizeCanvas(null, 300), 'canvas resized to 400x300');
+});
+
+test('read 失败时保留原文档与历史（不被空文档覆盖）', () => {
+  const { session } = makeSession();
+  session.init();
+  create(session, ['rect', 'r1', '0', '0', '10', '10']);
+  assert.throws(() => session.read('missing.svg'), /cannot read file/);
+  assert.equal(session.document.elementCount(), 1);
+  assert.equal(session.undo(), 'rect#r1 deleted');
+});
+
+test('失败的编辑命令不清空 redo 栈', () => {
+  const { session } = makeSession();
+  session.init();
+  create(session, ['rect', 'r1', '0', '0', '10', '10']);
+  assert.equal(session.undo(), 'rect#r1 deleted');
+  assert.throws(() => session.execute(MoveCommand.parse(['r9', '1', '1'], { shapes: session.shapes })), /no such shape/);
+  assert.equal(session.redo(), 'rect#r1 created', '失败命令不应清空 redo 栈');
 });

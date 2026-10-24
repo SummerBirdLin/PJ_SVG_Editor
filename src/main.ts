@@ -16,7 +16,7 @@ import { SvgWriter } from './io/SvgWriter.js';
  */
 async function main(): Promise<void> {
   const shapes = new ShapeFactory();
-  const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter());
+  const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter(), shapes);
   const registry = new CommandRegistry(shapes);
   const output: TextOutput = {
     write: (text: string): void => {
