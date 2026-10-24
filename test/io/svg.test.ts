@@ -135,3 +135,24 @@ test('SvgReader: 缺 width/height 回退 800x600；根元素必须是 svg', () =
     /invalid svg: mismatched closing tag/,
   );
 });
+
+test('SvgReader: text 子元素按顺序展平并告警；viewBox 回退画布尺寸', () => {
+  const result = new SvgReader(new ShapeFactory()).decode(
+    '<svg viewBox="0 0 200 100"><text id="t1" x="1" y="2">a<tspan>中</tspan>b</text></svg>',
+  );
+  assert.deepEqual(result.warnings, ['warning: flattened nested elements in text#t1']);
+  assert.equal(result.document.width(), 200);
+  assert.equal(result.document.height(), 100);
+  const text = result.document.findById('t1');
+  assert.ok(text !== null);
+  assert.equal(text.textContent(), 'a中b');
+});
+
+test('XmlParser: 超深嵌套报 invalid svg，而不是栈溢出崩溃', () => {
+  const deep = `<svg>${'<g>'.repeat(300)}${'</g>'.repeat(300)}</svg>`;
+  assert.throws(() => new XmlParser().parse(deep), /invalid svg: nesting too deep/);
+  assert.throws(
+    () => new SvgReader(new ShapeFactory()).decode(deep),
+    /invalid svg: nesting too deep/,
+  );
+});

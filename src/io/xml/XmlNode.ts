@@ -6,9 +6,8 @@ export class XmlNode {
 
   private readonly attributeEntries: Array<readonly [string, string]> = [];
 
-  private readonly childNodes: XmlNode[] = [];
-
-  private textValue = '';
+  /** 文本片段与子元素按文档顺序保存（`<text>a<tspan>b</tspan>c</text>` 的 a/b/c 不会乱序）。 */
+  private readonly contentParts: Array<string | XmlNode> = [];
 
   constructor(name: string) {
     this.name = name;
@@ -32,25 +31,37 @@ export class XmlNode {
   }
 
   appendChild(child: XmlNode): void {
-    this.childNodes.push(child);
-  }
-
-  children(): readonly XmlNode[] {
-    return this.childNodes;
+    this.contentParts.push(child);
   }
 
   appendText(chunk: string): void {
-    this.textValue += chunk;
+    const last = this.contentParts[this.contentParts.length - 1];
+    if (typeof last === 'string') {
+      this.contentParts[this.contentParts.length - 1] = last + chunk;
+      return;
+    }
+    this.contentParts.push(chunk);
   }
 
-  /** 元素内的文本内容（已做实体解码；子元素文本不会混入父节点的 text）。 */
+  children(): readonly XmlNode[] {
+    return this.contentParts.filter((part): part is XmlNode => typeof part !== 'string');
+  }
+
+  /** 直接文本（不含子元素里的文本）。 */
   text(): string {
-    return this.textValue;
+    return this.contentParts.filter((part): part is string => typeof part === 'string').join('');
+  }
+
+  /** 把子元素里的文本也按顺序展开（用于 `<text><tspan>…</tspan></text>` 的容错读入）。 */
+  contentText(): string {
+    return this.contentParts
+      .map((part) => (typeof part === 'string' ? part : part.contentText()))
+      .join('');
   }
 
   /** 仅取第一个同名子元素，够 SVG 场景使用。 */
   child(name: string): XmlNode | null {
-    for (const node of this.childNodes) {
+    for (const node of this.children()) {
       if (node.name === name) {
         return node;
       }

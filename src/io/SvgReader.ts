@@ -14,11 +14,13 @@ import { XmlParser } from './xml/XmlParser.js';
  * SVG → 文档。
  *
  * 容错策略（附录 A.7）：
- * - 缺 id → 按"标签名 + 递增序号"补 id 并告警；
+ * - 缺 id / 空 id → 按"标签名 + 递增序号"补 id 并告警；
  * - 重复 id → 后出现者重新分配并告警；
  * - 未支持的元素/非法几何 → 跳过并告警（不中断整个读入）；
+ * - `<text>` 的子元素（如 `<tspan>`）→ 文本按顺序展平并告警，不静默丢内容；
  * - `<g>` 的 transform → 原样保留并在 save 写回，但**不参与坐标计算**，同时告警；
- * - 未知 data-kind（阶段 2 插件类型未安装）→ 降级为普通 `<g>` 并告警。
+ * - 未知 data-kind（阶段 2 插件类型未安装）→ 降级为普通 `<g>` 并告警；
+ * - 画布尺寸：优先 width/height，其次 viewBox，最后 800×600。
  */
 export class SvgReader implements SvgDecoder {
   private readonly shapes: ShapeFactory;
@@ -33,8 +35,10 @@ export class SvgReader implements SvgDecoder {
       throw new EditorError(`invalid svg: root element must be <svg>, got <${root.name}>`);
     }
 
-    const width = this.dimension(root.attribute('width'), 800);
-    const height = this.dimension(root.attribute('height'), 600);
+    const box = this.viewBox(root.attribute('viewBox'));
+    const width = this.dimension(root.attribute('width')) ?? box?.width ?? 800;
+    const height = this.dimension(root.attribute('height')) ?? box?.height ?? 600;
+
     const document = new SvgDocument(width, height);
     const warnings: string[] = [];
     const allocator = new IdAllocator(this.collectExplicitIds(root));
@@ -81,11 +85,15 @@ export class SvgReader implements SvgDecoder {
       }
     }
 
-    const init: ShapeInit = {
-      attributes,
-      textContent: tag === 'text' ? node.text().trim() : null,
-    };
+    let textContent: string | null = null;
+    if (provider.hasTextContent) {
+      textContent = node.contentText().trim();
+      if (node.children().length > 0) {
+        warnings.push(`warning: flattened nested elements in ${tag}#${id}`);
+      }
+    }
 
+    const init: ShapeInit = { attributes, textContent };
     let shape: Shape | null;
     try {
       shape = this.shapes.create(typeName, id, init);
@@ -114,7 +122,7 @@ export class SvgReader implements SvgDecoder {
     allocator: IdAllocator,
   ): string {
     const requested = node.attribute('id');
-    if (requested === null) {
+    if (requested === null || requested.trim().length === 0) {
       const assigned = allocator.allocate(tag);
       warnings.push(`warning: assigned id ${assigned} to unnamed <${tag}>`);
       return assigned;
@@ -130,7 +138,7 @@ export class SvgReader implements SvgDecoder {
   private collectExplicitIds(node: XmlNode): string[] {
     const ids: string[] = [];
     const id = node.attribute('id');
-    if (id !== null) {
+    if (id !== null && id.trim().length > 0) {
       ids.push(id);
     }
     for (const child of node.children()) {
@@ -139,15 +147,32 @@ export class SvgReader implements SvgDecoder {
     return ids;
   }
 
-  private dimension(raw: string | null, fallback: number): number {
+  private dimension(raw: string | null): number | null {
     if (raw === null) {
-      return fallback;
+      return null;
     }
     try {
       const parsed = NumberFormat.parse(raw.replace(/px$/, ''));
-      return parsed > 0 ? parsed : fallback;
+      return parsed > 0 ? parsed : null;
     } catch {
-      return fallback;
+      return null;
+    }
+  }
+
+  private viewBox(raw: string | null): { width: number; height: number } | null {
+    if (raw === null) {
+      return null;
+    }
+    const parts = raw.trim().split(/[\s,]+/).filter((part) => part.length > 0);
+    if (parts.length !== 4) {
+      return null;
+    }
+    try {
+      const width = NumberFormat.parse(parts[2] ?? '');
+      const height = NumberFormat.parse(parts[3] ?? '');
+      return width > 0 && height > 0 ? { width, height } : null;
+    } catch {
+      return null;
     }
   }
 }

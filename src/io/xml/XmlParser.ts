@@ -7,6 +7,9 @@ import { XmlNode } from './XmlNode.js';
  * 不支持命名空间前缀与 DTD 校验——SVG 场景足够，不足时换实现即可（io 内部子模块）。
  */
 export class XmlParser {
+  /** 防御性上限：超深嵌套（恶意/异常文件）会先报 invalid svg，而不是把 REPL 打崩。 */
+  private static readonly MAX_DEPTH = 256;
+
   parse(text: string): XmlNode {
     const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
     const stack: XmlNode[] = [];
@@ -73,6 +76,9 @@ export class XmlParser {
       }
       if (!selfClosing) {
         stack.push(node);
+        if (stack.length > XmlParser.MAX_DEPTH) {
+          throw new EditorError(`invalid svg: nesting too deep (max ${XmlParser.MAX_DEPTH})`);
+        }
       }
     }
 
