@@ -134,6 +134,19 @@
 
 评审也顺带验证了方案的两个基本判断：**依赖矩阵自洽无环**、**ports/io/app 的边界与 Presenter 放 cli 是合理的**。这一轮之后方案定稿，开始实现（§2.2 起按模块记录实现中的问题）。
 
+### 2.2 实现期记录（domain + commands）
+
+自底向上先做领域层与命令层，每层写完立刻跑单测（20 个用例，见 `test/domain`、`test/commands`）。过程中真正暴露出来的问题：
+
+| # | 现象 | 根因 | 处理 |
+|---|---|---|---|
+| 1 | `scale` 之后 `rect.x()` 得到 `0.30000000000000004`（`0.1 * 3`） | 内部用 double 存几何，浮点噪声在原始字段里 | 决定**内部保留 double、输出统一走 `NumberFormat`**（6 位小数、去尾零）；`scale` 的 undo 存"旧几何的格式化快照"而非按 `1/factor` 反算，撤销后能精确回到 `0.1`。测试改为断言"对外视图"（`geometryAttributeEntries()`），不绑定内部 double |
+| 2 | `addto` 的环检测文案该点名哪个 id？`group` 的例子点名的是"容器"（`markers`） | 两个命令的语义方向相反：group 是"把图形收进容器"，addto 是"把图形移进容器" | `group` 保留需求文案（点名容器）；`addto` 按"**被移动的那个容器**"点名（`addto node1 flowchart` → `cannot move a container into its own descendant: flowchart`），更符合"它会被挂进自己的子孙"的直觉。附录 B 同步 |
+| 3 | `group markers c1`（只给一个目标）该不该允许？ | 需求语法是 `group <newGid> <id1> <id2>…` | 要求至少 2 个目标，否则报 usage；"只收编一个"用 `addto` 更自然，避免两个命令语义重叠 |
+| 4 | 首次 `tsc --noEmit` 报 4 条 `Cannot find module` | `provider/` 子目录里的相对 import 少写了一级（`../` 应为 `../../`） | 由严格类型检查立即发现并修正；这也是"每层写完就跑 typecheck + 单测"的直接收益 |
+| 5 | 文档与实现的两处同步 | 评审把 `findById` 降级为 `locate()` 的投影；`CanvasShape` 需要显式拒绝图形操作 | 实现按评审后的方案落地：`SvgDocument.locate()` 是唯一 id 定位入口，`findById` 委托它；`CanvasShape.move/scale/setAttribute` 抛 `cannot modify the canvas as a shape`（有单测覆盖） |
+
+
 
 ---
 
