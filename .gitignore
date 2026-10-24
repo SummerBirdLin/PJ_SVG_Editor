@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# local npm cache / logs (sandbox requires them inside the project)
+.npm-cache/
+.npm-logs/
+
+# editor / OS noise
+.DS_Store
+*.log
+
+# scratch workspace used while designing (not part of the deliverable)
+.work/
+
+# 课程需求文档（本地参考，不作为工程源码提交）
+phase_cli_1.md
