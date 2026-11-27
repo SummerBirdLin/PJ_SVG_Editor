@@ -11,7 +11,8 @@ import { NodeFileStore } from '../../src/io/NodeFileStore.js';
 import type { PluginAssembly } from '../../src/host/PluginAssembly.js';
 import { BufferOutput } from '../support/BufferOutput.js';
 
-const CONFIG_PATH = join('test', '.tmp', 'plugins.config.json');
+const CONFIG_DIR = join('test', '.tmp', 'plugin-commands');
+const CONFIG_PATH = join(CONFIG_DIR, 'plugins.config.json');
 
 async function runScript(
   assembly: PluginAssembly,
@@ -104,7 +105,7 @@ test('dir：读取失败后仍可继续执行其它命令', async (t) => {
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const missing = join(root, 'does-not-exist');
   const configPath = writeConfig([{ module: '@svgframe/plugin-dir', options: { cwd: missing } }]);
-  t.after(() => rmSync(join('test', '.tmp'), { recursive: true, force: true }));
+  t.after(() => rmSync(CONFIG_DIR, { recursive: true, force: true }));
 
   const { lines } = await runScript(new ConfigAssembly(configPath, readText), ['dir', 'init 50 50']);
   assert.deepEqual(lines, [`error: cannot read directory: ${missing}`, 'canvas 50x50 created']);
@@ -115,7 +116,7 @@ test('双装配一致：同一固定目录、同一会话，代码装配与配�
   // 直接使用仓库自带的 plugins.config.json：任何"代码装配与配置清单不一致"都会在此失败
   const configPath = resolve('plugins.config.json');
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  t.after(() => rmSync(join('test', '.tmp'), { recursive: true, force: true }));
+  t.after(() => rmSync(CONFIG_DIR, { recursive: true, force: true }));
 
   const script = [
     'init 800 600',
@@ -140,7 +141,7 @@ test('双装配一致：同一固定目录、同一会话，代码装配与配�
 });
 
 function writeConfig(plugins: readonly { module: string; options?: unknown }[]): string {
-  mkdirSync(join('test', '.tmp'), { recursive: true });
+  mkdirSync(CONFIG_DIR, { recursive: true });
   writeFileSync(CONFIG_PATH, JSON.stringify({ plugins }, null, 2), 'utf8');
   // 配置装配以"配置文件所在目录"为相对路径基准，测试里会临时 chdir，必须用绝对路径
   return resolve(CONFIG_PATH);

@@ -11,6 +11,9 @@
     },
     {
       "module": "@svgframe/plugin-tree-star"
+    },
+    {
+      "module": "@svgframe/plugin-shape-diamond"
     }
   ]
 }

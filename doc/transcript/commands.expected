@@ -1,0 +1,23 @@
+canvas 800x600 created
+g#flow created
+rect#r1 created in g#flow
+circle#c1 created in g#flow
+text#t1 created
+[DIR]  docs
+[DIR]  plugins
+[FILE] demo.svg
+[FILE] package.json
+rect: 1  circle: 1  text: 1  (total 3, containers 1)
+svg (800x600) *
+├── g#flow *
+│   ├── rect#r1    x=0 y=0 w=100 h=60 fill=#4a90d9 *
+│   └── circle#c1  cx=200 cy=40 r=20 fill=red *
+└── text#t1  (20,200) "标题" *
+rect#r1 updated: fill=#f5a623
+rect#r1 updated: fill=#4a90d9
+rect: 1  circle: 1  text: 1  (total 3, containers 1)
+[DIR]  docs
+[DIR]  plugins
+[FILE] demo.svg
+[FILE] package.json
+saved to ../logs/commands.svg (4 elements)

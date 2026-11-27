@@ -1,0 +1,41 @@
+@startuml svg-editor-deps-before
+' 阶段 1（tag final）的**模块级**依赖图：箭头 = 允许的 import 方向
+title 阶段 1：模块依赖（无插件框架，main.ts 是唯一的组合根）
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Noto Sans CJK SC"
+left to right direction
+
+package "内核" {
+  [domain\n（图形/文档/校验，零外部依赖）] as domain
+  [commands\n（10 个编辑命令 + History）] as commands
+  [ports\n（文件存储/编解码接口）] as ports
+  [io\n（SvgReader/SvgWriter/NodeFileStore）] as io
+  [app\n（EditorSession 门面）] as app
+  [cli\n（Repl/19 条命令/3 个 Presenter）] as cli
+}
+[main.ts\n（组合根：手工 new 所有对象）] as main
+
+domain <- commands
+domain <- ports
+domain <- io
+ports <- io
+domain <- app
+commands <- app
+ports <- app
+domain <- cli
+commands <- cli
+app <- cli
+domain <- main
+commands <- main
+ports <- main
+io <- main
+app <- main
+cli <- main
+
+note bottom of cli
+  命令表是**硬编码**的：CommandRegistry 里
+  一张「名字 → Action」表（含 10 个编辑命令）。
+  新增命令/图形/树标签都要改内核代码。
+end note
+@enduml
