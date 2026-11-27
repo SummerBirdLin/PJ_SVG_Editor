@@ -7,6 +7,7 @@ import { createApplication, type Application } from '../../src/host/Application.
 import { CodeAssembly } from '../../src/host/CodeAssembly.js';
 import { ConfigAssembly } from '../../src/host/ConfigAssembly.js';
 import { optionalPlugins } from '../../src/host/CodePlugins.js';
+import TreeStarPlugin from '@svgframe/plugin-tree-star';
 import { NodeFileStore } from '../../src/io/NodeFileStore.js';
 import type { PluginAssembly } from '../../src/host/PluginAssembly.js';
 import { BufferOutput } from '../support/BufferOutput.js';
@@ -82,7 +83,7 @@ test('标签：`(box)` 与 `modified-star` 并存且互不感知（同一行按�
 test('标签：只有 modified-star 时的缺省行为（不装 box 插件也没有 (box) 标签）', async () => {
   const { lines } = await run(
     ['init 100 100', 'create g g1', 'create rect r1 0 0 5 5 in g1', 'tree'],
-    new CodeAssembly([optionalPlugins()[3] as never]),
+    new CodeAssembly([new TreeStarPlugin()]),
   );
   assert.ok(lines.includes('└── g#g1 *'));
   assert.ok(!lines.some((line) => line.includes('(box)')));
