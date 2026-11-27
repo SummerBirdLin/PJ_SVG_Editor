@@ -1,0 +1,83 @@
+@startuml svg-editor-deps-after
+' 阶段 2（tag p2）的**模块级**依赖图：箭头 = 允许的 import 方向
+title 阶段 2：模块依赖（plugin-api 扩展点层 + 装配处 host + 独立插件包）
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Noto Sans CJK SC"
+top to bottom direction
+
+package "内核（kernel）" {
+  [domain] as domain
+  [plugin-api\n（四个扩展点 + 注册表 + 事件）] as api
+  [commands] as commands
+  [ports] as ports
+  [io] as io
+  [app] as app
+  [cli] as cli
+}
+
+package "内置插件（builtin，与第三方插件同权）" {
+  [builtin\n（6 种图形 + 10 个编辑命令）] as builtin
+}
+
+package "可选插件（plugins/*，独立包/独立测试）" {
+  [plugin-stats\n（stats 命令）] as pstats
+  [plugin-dir\n（dir 命令 + 目录适配器）] as pdir
+  [plugin-shape-box\n（box 图形 + fill/label 语义 + (box) 标签）] as pbox
+  [plugin-tree-star\n（modified-star 标签）] as pstar
+}
+
+package "装配处（assembly）" {
+  [host\n（组合根 + 插件加载器 + 配置装配）] as host
+  [main.ts\n（只调 runCliMain）] as main
+}
+
+domain <-- api
+api <-- commands
+domain <-- commands
+domain <-- ports
+domain <-- io
+ports <-- io
+domain <-- app
+commands <-- app
+api <-- app
+domain <-- cli
+commands <-- cli
+app <-- cli
+api <-- cli
+domain <-- builtin
+commands <-- builtin
+api <-- builtin
+
+api <-- pstats
+domain <-- pstats
+api <-- pdir
+domain <-- pdir
+api <-- pbox
+domain <-- pbox
+api <-- pstar
+domain <-- pstar
+
+domain <-- host
+api <-- host
+commands <-- host
+ports <-- host
+io <-- host
+app <-- host
+cli <-- host
+builtin <-- host
+host <-- main
+
+note right of pstats
+  四个插件**互不 import**：
+  各自只依赖 domain + plugin-api，
+  彼此协作靠注册表里的公共契约
+  （例如 (box) 标签只看 typeName()）。
+end note
+note bottom of host
+  只有装配处知道"全部插件"：
+  代码装配 = CodePlugins.ts 一行；
+  配置装配 = plugins.config.json 一项。
+  加载器不 import 任何具体插件。
+end note
+@enduml

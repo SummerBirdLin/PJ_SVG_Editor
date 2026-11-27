@@ -1,0 +1,6 @@
+{
+  "name": "dir-workdir-fixture",
+  "private": true,
+  "description": "固定内容的工作目录夹具：用于验证 dir 的输出顺序与双装配一致性",
+  "version": "0.0.0"
+}

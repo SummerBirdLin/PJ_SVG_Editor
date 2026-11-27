@@ -1,0 +1,17 @@
+# 阶段 2 新增命令会话：stats（图形统计）与 dir（当前工作目录）
+# 验证脚本会把 doc/transcript/dir-workdir 复制到临时目录后在其中回放；
+# 日志写到该目录之外（../logs），因此 dir 的列表不受影响
+# 手工回放：见 doc/transcript/README.md
+init 800 600
+create g flow
+create rect r1 0 0 100 60 #4a90d9 in flow
+create circle c1 200 40 20 red in flow
+create text t1 20 200 "标题"
+dir
+stats
+tree
+set r1 fill #f5a623
+undo
+stats
+dir
+save ../logs/commands.svg
