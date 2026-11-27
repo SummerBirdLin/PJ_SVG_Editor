@@ -94,6 +94,13 @@ export class CreateCommand extends Command {
       attributes: this.attributes,
       textContent: this.textContent,
     });
+    // 通用不变式：**整棵新增子树的 id** 都必须全局唯一。
+    // 复合图形（如 box 的 `-rect`/`-label`）自带派生子 id，冲突时必须整条命令失败，
+    // 且不能留下容器或任何子部件——因此校验放在 append 之前，失败时文档零残留。
+    const duplicated = CreateCommand.collectIds(shape).find((id) => document.isIdTaken(id));
+    if (duplicated !== undefined) {
+      throw new EditorError(`id already exists: ${duplicated}`);
+    }
     parent.append(shape);
     this.createdShape = shape;
     this.targetContainer = parent;
@@ -102,6 +109,18 @@ export class CreateCommand extends Command {
       return `${shape.label()} created`;
     }
     return `${shape.label()} created in ${parent.label()}`;
+  }
+
+  /** 新增子树的全部 id（含子孙），按先序。 */
+  private static collectIds(shape: Shape): string[] {
+    const ids: string[] = [shape.id()];
+    const nested = shape as Shape & { children?: () => readonly Shape[] };
+    if (typeof nested.children === 'function') {
+      for (const child of nested.children()) {
+        ids.push(...CreateCommand.collectIds(child));
+      }
+    }
+    return ids;
   }
 
   undo(_context: CommandContext): string {

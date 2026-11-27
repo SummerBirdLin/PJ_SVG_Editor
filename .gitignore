@@ -24,3 +24,7 @@ phase_cli_1.md
 # 示例会话回放产生的输出
 examples/demo.svg
 examples/flowchart.svg
+examples/box.svg
+
+# 阶段 2 需求文档（本地参考，不作为工程源码提交）
+phase_cli_2.md

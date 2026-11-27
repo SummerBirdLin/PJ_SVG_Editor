@@ -1,0 +1,17 @@
+# 阶段 2 §4：`box` 复合图形的完整会话（需求 §6.1 流程图的 box 版本）
+# 回放：npm run cli --silent < doc/transcript/box.txt
+init 800 600
+create g flowchart
+create box n1 120 100 160 60 "处理数据" in flowchart
+create line arrow1 280 130 520 130 black in flowchart
+tree
+stats
+set n1 fill #f5a623
+set n1 label "处理数据 v2"
+tree
+undo
+tree
+redo
+move n1 0 40
+tree
+save examples/box.svg

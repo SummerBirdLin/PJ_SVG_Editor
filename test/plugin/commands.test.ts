@@ -112,10 +112,8 @@ test('dir：读取失败后仍可继续执行其它命令', async (t) => {
 
 test('双装配一致：同一固定目录、同一会话，代码装配与配置装配输出逐字节相同', async (t) => {
   const root = makeFixedDirectory();
-  const configPath = writeConfig([
-    { module: '@svgframe/plugin-stats' },
-    { module: '@svgframe/plugin-dir' },
-  ]);
+  // 直接使用仓库自带的 plugins.config.json：任何"代码装配与配置清单不一致"都会在此失败
+  const configPath = resolve('plugins.config.json');
   t.after(() => rmSync(root, { recursive: true, force: true }));
   t.after(() => rmSync(join('test', '.tmp'), { recursive: true, force: true }));
 
