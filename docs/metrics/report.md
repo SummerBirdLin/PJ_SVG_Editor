@@ -13,7 +13,7 @@
 | 项 | 值 |
 |---|---|
 | 基线 ref（`--from`） | `final` → annotated tag 对象 `52f24b5` → commit `5e7e7cb` |
-| 目标 ref（`--to`） | `HEAD` → commit `d510955` |
+| 目标 ref（`--to`） | `HEAD` → commit `e8d0b38` |
 | 生成命令 | `node tools/metrics/report.mjs --from final --to HEAD` |
 | 基线内容来源 | `git ls-tree -r --name-only final` / `git show final:<path>`（扫描 88 个 TS 文件） |
 | 目标内容来源 | `git ls-tree -r --name-only HEAD` / `git show HEAD:<path>`（扫描 179 个 TS 文件） |

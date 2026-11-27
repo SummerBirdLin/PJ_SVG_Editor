@@ -210,18 +210,19 @@ $ node tools/verify-phase2.mjs
 [PASS] A1 兼容性（禁用全部插件 vs final 基线）：输出与期望逐字节一致
 [PASS] A2 基线来源（tag final 重放）：tag final 的输出与 cli-1.baseline.expected 一致
 [PASS] B cli-1：代码装配 vs 配置装配：输出与期望逐字节一致
-[PASS] B cli-1（默认装配 vs cli-1.expected）：输出与期望逐字节一致
-[PASS] B box：代码装配 vs 配置装配 / B box（默认装配 vs box.expected）
-[PASS] B commands：代码装配 vs 配置装配 / B commands（默认装配 vs commands.expected）
+[PASS] B box：代码装配 vs 配置装配：输出与期望逐字节一致
+[PASS] B commands：代码装配 vs 配置装配：输出与期望逐字节一致
 [PASS] C dir 工作目录内容在验证期间未改变
-[PASS] D1/D2/D3/D4 开闭原则判据（见 §3.4）
+[PASS] D1/D2/D3/D4 开闭原则判据（§3.4，两条演示分支 × 改动范围/内核差异）
 [PASS] E 加载器独立性：无具体插件 import / require / 模块名分支
 [PASS] F 指标脚本可运行（final → HEAD）
-=== 汇总：13/13 项通过 ===
+[PASS] F2 指标产物可复现（final → p2）
+=== 汇总：18/18 项通过 ===
 ```
 
 三份会话输入在 `doc/transcript/`（`cli-1`、`box`、`commands`），期望输出与之一并提交，
-因此"双装配一致"不是一次性人工结论，而是每次跑脚本都重新验证的契约。
+因此"双装配一致"不是一次性人工结论，而是每次跑脚本都重新验证的契约；
+A2 还会现取 `git archive final` 重放一遍，确认基线文件没有被手改过。
 
 ---
 
