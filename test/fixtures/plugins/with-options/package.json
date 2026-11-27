@@ -1,0 +1,9 @@
+{
+  "name": "@svgframe/test-plugin-with-options",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "decorators": ["options-marker"]
+  }
+}

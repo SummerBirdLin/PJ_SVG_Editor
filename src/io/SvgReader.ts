@@ -113,6 +113,10 @@ export class SvgReader implements SvgDecoder {
         this.readElement(child, shape, warnings, allocator);
       }
     }
+    // 子节点读完后交给该类型的 Provider 校验（box 用它保证必要子部件齐全）；
+    // 校验失败按"拒绝整个读入"处理：异常直接上抛，不降级、不产生不完整对象。
+    const actualProvider = this.shapes.providerForType(shape.typeName());
+    actualProvider.afterChildren(shape);
   }
 
   private assignId(

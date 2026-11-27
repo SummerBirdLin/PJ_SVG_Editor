@@ -3,22 +3,33 @@ import type { CommandContext } from '../../src/commands/CommandContext.js';
 import type { CommandParseContext } from '../../src/commands/CommandParseContext.js';
 import { History } from '../../src/commands/History.js';
 import { SvgDocument } from '../../src/domain/SvgDocument.js';
-import { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
+import type { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
+import type { AttributeHandlerLookup } from '../../src/plugin-api/AttributeHandler.js';
+import { createTestCommandContext, createTestKernel } from './Kernel.js';
 
 /**
  * 测试用的"最小会话"：命令 + 文档 + **真实 History**（不再自实现双栈，
  * 保证命令级测试覆盖的 undo/redo 语义与产品代码一致）。
+ *
+ * `handlers` 可注入属性处理器，用于验证 `set` 的处理器路径与回滚。
  */
 export class CommandHarness {
   readonly document = new SvgDocument(800, 600);
 
-  readonly shapes = new ShapeFactory();
+  readonly shapes: ShapeFactory;
 
-  readonly context: CommandContext = { document: this.document, shapes: this.shapes };
+  readonly context: CommandContext;
 
-  readonly parseContext: CommandParseContext = { shapes: this.shapes };
+  readonly parseContext: CommandParseContext;
 
   private readonly history = new History();
+
+  constructor(handlers?: AttributeHandlerLookup) {
+    const kernel = createTestKernel();
+    this.shapes = kernel.shapes;
+    this.context = createTestCommandContext(this.document, this.shapes, handlers);
+    this.parseContext = { shapes: this.shapes };
+  }
 
   run(command: Command): string {
     const message = command.execute(this.context);
@@ -46,8 +57,16 @@ export class CommandHarness {
     return message;
   }
 
+  historyDepth(): number {
+    return this.history.depth();
+  }
+
   canRedo(): boolean {
     return this.history.canRedo();
+  }
+
+  canUndoRedo(): boolean {
+    return this.history.canUndo() || this.history.canRedo();
   }
 
   ids(): string[] {

@@ -1,20 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EditorSession } from '../../src/app/EditorSession.js';
-import { CommandRegistry } from '../../src/cli/CommandRegistry.js';
 import { Repl } from '../../src/cli/Repl.js';
 import { Tokenizer } from '../../src/cli/Tokenizer.js';
-import { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
-import { NodeFileStore } from '../../src/io/NodeFileStore.js';
-import { SvgReader } from '../../src/io/SvgReader.js';
-import { SvgWriter } from '../../src/io/SvgWriter.js';
 import { BufferOutput } from '../support/BufferOutput.js';
+import { createTestKernel } from '../support/Kernel.js';
+import { createTestSession } from '../support/Kernel.js';
+import { NodeFileStore } from '../../src/io/NodeFileStore.js';
 
 function makeRepl(output: BufferOutput, options: { banner?: string; prompt?: string } = {}): Repl {
-  const shapes = new ShapeFactory();
-  const session = new EditorSession(new NodeFileStore(), new SvgReader(shapes), new SvgWriter(), shapes);
-  const registry = new CommandRegistry(shapes);
-  return new Repl(new Tokenizer(), registry, session, output, options);
+  const kernel = createTestKernel();
+  const session = createTestSession(new NodeFileStore(), kernel.shapes);
+  return new Repl(new Tokenizer(), kernel.commands, session, output, options);
 }
 
 async function* lines(items: string[]): AsyncIterable<string> {

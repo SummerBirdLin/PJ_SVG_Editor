@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { CommandRegistry } from '../../src/cli/CommandRegistry.js';
 import { HelpPresenter } from '../../src/cli/presenter/HelpPresenter.js';
 import { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
+import { createTestKernel } from '../support/Kernel.js';
 
 const EXPECTED_COMMANDS = [
   'init', 'read', 'save', 'canvas',
@@ -12,7 +13,7 @@ const EXPECTED_COMMANDS = [
 ];
 
 test('注册表：19 条命令齐全，usage 与命令名一致，help 由注册表生成', () => {
-  const registry = new CommandRegistry(new ShapeFactory());
+  const registry = createTestKernel().commands;
   const entries = registry.entriesList();
 
   assert.deepEqual(entries.map((entry) => entry.commandName), EXPECTED_COMMANDS);
@@ -29,12 +30,12 @@ test('注册表：19 条命令齐全，usage 与命令名一致，help 由注册
 });
 
 test('注册表：未知命令报 unknown command', () => {
-  const registry = new CommandRegistry(new ShapeFactory());
+  const registry = createTestKernel().commands;
   assert.throws(() => registry.parseAndCreate('frobnicate', []), /unknown command: frobnicate/);
 });
 
 test('help 不依赖文档：未 init 也能用', () => {
-  const registry = new CommandRegistry(new ShapeFactory());
+  const registry = createTestKernel().commands;
   const help = registry.parseAndCreate('help', []);
   const lines = help.run({} as never);
   assert.ok(lines.some((line) => line.includes('create <type> <id>')));

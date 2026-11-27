@@ -8,6 +8,7 @@ import { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
 import { SvgReader } from '../../src/io/SvgReader.js';
 import { SvgWriter } from '../../src/io/SvgWriter.js';
 import type { FileStore } from '../../src/ports/FileStore.js';
+import { createTestShapes } from '../support/Kernel.js';
 
 /** 内存文件系统：检验 EditorSession 只依赖 FileStore 抽象（不碰真实磁盘）。 */
 class MemoryFileStore implements FileStore {
@@ -31,7 +32,7 @@ class MemoryFileStore implements FileStore {
 
 function makeSession(): { session: EditorSession; files: MemoryFileStore } {
   const files = new MemoryFileStore();
-  const shapes = new ShapeFactory();
+  const shapes = createTestShapes();
   const session = new EditorSession(files, new SvgReader(shapes), new SvgWriter(), shapes);
   return { session, files };
 }

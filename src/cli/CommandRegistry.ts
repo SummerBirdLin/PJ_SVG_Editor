@@ -1,35 +1,20 @@
-import { CreateCommand } from '../commands/CreateCommand.js';
-import { DeleteCommand } from '../commands/DeleteCommand.js';
-import { MoveCommand } from '../commands/MoveCommand.js';
-import { ScaleCommand } from '../commands/ScaleCommand.js';
-import { SetCommand } from '../commands/SetCommand.js';
-import { GroupCommand } from '../commands/GroupCommand.js';
-import { UngroupCommand } from '../commands/UngroupCommand.js';
-import { AddToCommand } from '../commands/AddToCommand.js';
-import { FrontCommand } from '../commands/FrontCommand.js';
-import { BackCommand } from '../commands/BackCommand.js';
 import { EditorError } from '../domain/EditorError.js';
 import type { ShapeFactory } from '../domain/shape/ShapeFactory.js';
-import { ActionEntry } from './ActionEntry.js';
+import type { CommandCatalog } from '../plugin-api/CommandContribution.js';
+import type { TreeDecorator } from '../plugin-api/TreeDecorator.js';
 import type { ActionContext } from './ActionContext.js';
-import { InitAction } from './action/InitAction.js';
-import { ReadAction } from './action/ReadAction.js';
-import { SaveAction } from './action/SaveAction.js';
-import { CanvasAction } from './action/CanvasAction.js';
-import { TreeAction } from './action/TreeAction.js';
-import { ShowAction } from './action/ShowAction.js';
-import { HelpAction } from './action/HelpAction.js';
-import { UndoAction } from './action/UndoAction.js';
-import { RedoAction } from './action/RedoAction.js';
-import { EditCommandEntry } from './EditCommandEntry.js';
+import { PluginCommandEntry } from './PluginCommandEntry.js';
 import type { CommandEntry } from './CommandEntry.js';
 import type { Runnable } from './Runnable.js';
 
 /**
- * 命令注册表：**命令名分派（需求允许的两处之一，另一处是 ShapeFactory）**，已标注为待重构。
+ * 命令注册表：**命令名 → 条目**的唯一分派点，也是 `help` 的数据源。
  *
- * 19 条命令全部登记在这里：4 个文档命令 + 10 个编辑命令 + 3 个显示命令 + undo/redo。
- * Repl 因此不需要任何 `if/else` 特判，`help` 也直接由这张表生成。
+ * 阶段 2 起本类不再硬编码任何命令名：
+ * - 9 条**会话动作**（init/read/save/canvas/tree/show/help/undo/redo）由装配处注入——
+ *   它们需要完整会话门面，因此不属于"插件命令"这一扩展点；
+ * - 10 条**编辑命令**与第三方命令都来自插件目录（`CommandCatalog`），
+ *   经 `PluginCommandEntry` 适配成同一种条目，因此冲突校验、`help` 与分派只有一条路。
  */
 export class CommandRegistry {
   private readonly shapes: ShapeFactory;
@@ -38,32 +23,13 @@ export class CommandRegistry {
 
   private readonly ordered: CommandEntry[] = [];
 
-  constructor(shapes: ShapeFactory) {
+  private readonly decoratorsValue: readonly TreeDecorator[];
+
+  constructor(shapes: ShapeFactory, entries: readonly CommandEntry[], decorators: readonly TreeDecorator[]) {
     this.shapes = shapes;
-    const entries: readonly CommandEntry[] = [
-      new ActionEntry(InitAction),
-      new ActionEntry(ReadAction),
-      new ActionEntry(SaveAction),
-      new ActionEntry(CanvasAction),
-      new EditCommandEntry(CreateCommand),
-      new EditCommandEntry(DeleteCommand),
-      new EditCommandEntry(MoveCommand),
-      new EditCommandEntry(ScaleCommand),
-      new EditCommandEntry(SetCommand),
-      new EditCommandEntry(GroupCommand),
-      new EditCommandEntry(UngroupCommand),
-      new EditCommandEntry(AddToCommand),
-      new EditCommandEntry(FrontCommand),
-      new EditCommandEntry(BackCommand),
-      new ActionEntry(TreeAction),
-      new ActionEntry(ShowAction),
-      new ActionEntry(HelpAction),
-      new ActionEntry(UndoAction),
-      new ActionEntry(RedoAction),
-    ];
+    this.decoratorsValue = decorators;
     for (const entry of entries) {
-      this.entries.set(entry.commandName, entry);
-      this.ordered.push(entry);
+      this.add(entry);
     }
   }
 
@@ -79,7 +45,20 @@ export class CommandRegistry {
     return this.ordered;
   }
 
+  decorators(): readonly TreeDecorator[] {
+    return this.decoratorsValue;
+  }
+
+  /** 命令名冲突在校验阶段就拒绝（装配期就报错，而不是等到运行期静默覆盖）。 */
+  private add(entry: CommandEntry): void {
+    if (this.entries.has(entry.commandName)) {
+      throw new EditorError(`duplicate command: ${entry.commandName}`);
+    }
+    this.entries.set(entry.commandName, entry);
+    this.ordered.push(entry);
+  }
+
   private context(): ActionContext {
-    return { shapes: this.shapes, registry: this };
+    return { shapes: this.shapes, registry: this, decorators: this.decoratorsValue };
   }
 }
