@@ -293,9 +293,11 @@ function checkMetricsReproducible() {
       record('F2 指标产物可复现（final → p2）', false, (result.stderr || result.stdout).slice(0, 300));
       return;
     }
+    // 只允许"ref 名字"不同的行有差异：目标 ref / 内容来源 / 生成命令 / 增量口径
     const normalize = (text) => text
       .split('\n')
-      .filter((line) => !/^\| 目标 ref|^- 目标 ref|^> 目标|目标 ref（/.test(line.trim()) && !/--to (HEAD|p2)/.test(line))
+      .filter((line) => !/目标 ref|目标内容来源|生成命令|增量口径：|目标内容/.test(line))
+      .filter((line) => !/--to (HEAD|p2)|--from final --to/.test(line))
       .join('\n');
     const committed = normalize(readFileSync(join(REPO, 'docs', 'metrics', 'report.md'), 'utf8'));
     const fresh = normalize(readFileSync(join(outDir, 'report.md'), 'utf8'));
