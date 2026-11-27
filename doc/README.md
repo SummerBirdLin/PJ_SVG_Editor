@@ -112,7 +112,7 @@ node tools/metrics/report.mjs     # 重新生成 docs/metrics/report.md（final 
 
 | 关注点 | 阶段 1（`final`） | 阶段 2 |
 |---|---|---|
-| 图形类型表 | `ShapeFactory` 里硬编码 7 个 Provider 的 `Map` | 注入 `ShapeProviderLookup`，`ShapeFactory` 只做"查表 + 校验"；查不到就是 `unknown shape type` |
+| 图形类型表 | `ShapeFactory` 里硬编码 6 个 Provider 的 `Map` | 注入 `ShapeProviderLookup`，`ShapeFactory` 只做"查表 + 校验"；查不到就是 `unknown shape type` |
 | 命令表 | `CliMain` 里手工 new 19 条命令并硬编码名字 | `host/CommandSetup` 按"文档动作 → 插件命令 → 显示动作"装配 `CommandRegistry`，注册表里没有任何具体命令名 |
 | `set` 的属性语义 | 一张白名单 + `switch` 到各个 `setXxx` | 属性处理器链（`AttributeChanges` 事务）优先；无命中才走阶段 1 白名单（保证兼容） |
 | 树标签 | 不存在（`TreePresenter` 直接输出行） | 装饰器列表按注册顺序拼接；空列表时输出逐字节不变 |
