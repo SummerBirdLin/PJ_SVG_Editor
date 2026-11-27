@@ -200,18 +200,32 @@ const KERNEL_AND_EXISTING = [
   'plugins/dir',
 ];
 
+/**
+ * 演示分支可能只以远端跟踪分支存在（`git clone` 只给默认分支建本地分支），
+ * 因此这里先找本地同名分支，再退回 `origin/<branch>`。
+ */
+function resolveBranch(branch) {
+  if (run('git', ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).status === 0) {
+    return branch;
+  }
+  if (run('git', ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${branch}`]).status === 0) {
+    return `origin/${branch}`;
+  }
+  return null;
+}
+
 function checkOpenClosedEvidence() {
   const branches = [
     { branch: 'demo/assembly-code', label: 'D1 方式 A（只改一个顶层装配文件）', allowed: ['plugins/shape-box/', 'src/host/CodePlugins.ts', 'package-lock.json'] },
     { branch: 'demo/assembly-config', label: 'D2 方式 B（只改配置）', allowed: ['plugins/shape-box/', 'plugins.config.json', 'package-lock.json'] },
   ];
   for (const { branch, label, allowed } of branches) {
-    const exists = run('git', ['rev-parse', '--verify', '--quiet', branch]).status === 0;
-    if (!exists) {
-      record(label, false, `分支 ${branch} 不存在`);
+    const ref = resolveBranch(branch);
+    if (ref === null) {
+      record(label, false, `分支 ${branch} 不存在（本地和 origin 都没有）`);
       continue;
     }
-    const changed = run('git', ['diff', '--name-status', `${branch}^`, branch]).stdout
+    const changed = run('git', ['diff', '--name-status', `${ref}^`, ref]).stdout
       .split('\n')
       .filter(Boolean)
       .map((line) => line.split('\t').pop() ?? '');
@@ -235,7 +249,7 @@ function checkOpenClosedEvidence() {
       );
     }
 
-    const kernelDiff = run('git', ['diff', '--name-status', `${branch}^`, branch, '--', ...KERNEL_AND_EXISTING]).stdout.trim();
+    const kernelDiff = run('git', ['diff', '--name-status', `${ref}^`, ref, '--', ...KERNEL_AND_EXISTING]).stdout.trim();
     record(`D4 ${branch}：排除新插件包后内核与既有插件差异为空`, kernelDiff === '', kernelDiff);
   }
 }
