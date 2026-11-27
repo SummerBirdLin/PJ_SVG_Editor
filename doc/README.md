@@ -217,7 +217,7 @@ $ node tools/verify-phase2.mjs
 [PASS] D1/D2/D3/D4 开闭原则判据（§3.4，两条演示分支 × 改动范围/内核差异）
 [PASS] E 加载器独立性：无具体插件 import / require / 模块名分支
 [PASS] E2 VSCode 等价证据可复现（doc/evidence/ 与现场重算逐字节一致）
-[PASS] G VSCode 真机截图齐备（A.1 徽标 / A.2 大纲）
+[PASS] G 提交证据齐备（A.1/A.2 截图 + 测试/兼容性捕获输出）
 [PASS] F 指标脚本可运行（final → HEAD）
 [PASS] F2 指标产物可复现（final → p2）
 === 汇总：20/20 项通过 ===
@@ -567,7 +567,12 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 > 本仓库的开发容器没有 `code` CLI / Xvfb / 浏览器运行库，拍不了图，所以**先**用真实扩展代码生成了可复现的**等价证据**：
 > [`doc/evidence/vscode-badge.txt`](evidence/vscode-badge.txt)（徽标决策表：哪些 Uri 得到 `[]`、哪些连 `stat` 都不发、两段式刷新各触发几次）与
 > [`doc/evidence/vscode-outline.txt`](evidence/vscode-outline.txt)（`DocumentSymbol` 的层级、`range`/`selectionRange`、编辑到一半时清空而非崩溃）。
-> 两者由 `vscode-extension/tools/evidence.ts` 生成、`npm run evidence` 可复现，验收脚本 E2 项核对未被手改；G 项核对截图齐备。
+> 两者由 `vscode-extension/tools/evidence.ts` 生成、`npm run evidence` 可复现，验收脚本 E2 项核对未被手改；G 项核对证据齐备。
+
+> **另两份「运行证据」（真机捕获，非截图）**：
+> [`doc/evidence/plugin-loader-tests.txt`](evidence/plugin-loader-tests.txt) —— 插件框架/加载器用例与 5 个插件包各自的 `npm test` 输出，含四条失败路径与重复注册回滚的用例名；
+> [`doc/evidence/compatibility.txt`](evidence/compatibility.txt) —— 功能兼容性验证：现取 `git archive final` 重放同一份 `cli-1.txt`，与阶段 2（禁用全部插件）输出 `diff` 为空、`sha256` 相同（`f1617…8979`），再附 20 项验收脚本输出。
+> 两份都可按文件内记录的命令原样重跑。
 
 ### 9.1 交付物与运行方式
 

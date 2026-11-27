@@ -1,0 +1,208 @@
+# 插件与加载器测试输出（真机捕获）
+
+> 由以下命令实际运行产生，捕获时间 2026-11-27 17:45:36 CST，提交 `fd3df16`。
+> 用途：作为「插件与加载器测试」的可核查证据；文本证据与 `doc/images/*.png` 截图互不替代。
+> 复现：在仓库根目录执行本文件里出现的每条命令（容器/虚拟机内均可，node_modules 与平台匹配即可）。
+
+## 0. 环境
+
+```text
+$ node --version && npm --version && uname -m
+v24.22.1
+11.19.1
+aarch64
+```
+
+## 1. 插件框架与加载器（内核侧 test/plugin/）
+
+覆盖：注册表查重与回滚、加载器四条失败路径、属性处理器事务/歧义、装饰器状态、命令插件，以及 `box`/标签的集成用例。
+
+```text
+$ node --import tsx --test "test/plugin/*.test.ts"
+✔ set：无处理器命中 → 阶段 1 白名单路径逐字不变 (2.5248ms)
+✔ set：处理器命中 → 一次 set 改两个子部件，一次 undo 整体恢复、一次 redo 整体重做 (1.104545ms)
+✔ set：多个处理器命中同一属性 → 按优先级取最高，低优先级不执行 (2.898885ms)
+✔ set：最高优先级并列 → 拒绝并报 ambiguous attribute handler，文档不变 (0.349334ms)
+✔ set：处理器改了子部件后抛错 → 文档整体回滚，undo/redo 历史不变 (0.60046ms)
+✔ set：处理器内部抛非 EditorError → 折算成可定位的 attribute handler failed (0.275709ms)
+✔ AttributeChanges：setAttribute 只在写入成功后才登记，回滚可逆序恢复 (0.224459ms)
+✔ set：处理器对「非目标类型」不命中时仍走缺省路径（普通矩形的 label 报未知属性） (0.222459ms)
+✔ box：创建后 tree 显示 box#n1 (box) 与两个必要子部件 (4.61735ms)
+✔ box：set fill / set label 各自是一个 undo 单元（undo 一次恢复，redo 一次重做） (2.025049ms)
+✔ box：不变量由插件守住——删除/移走必要子部件、加第三个子部件、ungroup 都被拒绝 (1.154171ms)
+✔ box：新增子树的 id 冲突时整条命令失败，不留容器或子部件 (1.65988ms)
+✔ box：save 写出 data-kind="box"，read 读回仍是 box（工厂/属性/结构一致） (3.781346ms)
+✔ box：未装插件时读回降级为普通 g（并给出 warning），行为与阶段 1 一致 (4.879642ms)
+✔ box：move/scale 作用于整体（两个子部件一起动） (2.270342ms)
+✔ stats：代码装配下可用，出现在 help 中，执行不进入 undo 栈 (6.448314ms)
+✔ stats/dir：未装插件时是未知命令（缺省行为），装上后出现在 help (1.622922ms)
+✔ dir：未 init/read 时可用，且不改变文档与 undo 历史 (2.305758ms)
+✔ dir：读取失败后仍可继续执行其它命令 (3.985972ms)
+✔ 双装配一致：同一固定目录、同一会话，代码装配与配置装配输出逐字节相同 (8.41278ms)
+✔ tree：没有装饰器时输出与阶段 1 逐字节一致（无尾随空格） (1.635839ms)
+✔ tree：多个装饰器按注册顺序拼接，只加在命中行 (0.356834ms)
+✔ tree：装饰器可以标注根行（shape === null） (1.457047ms)
+✔ tree：装饰器抛错时报可定位的错误（渲染器不静默吞掉插件故障） (0.518586ms)
+✔ tree：装饰器返回非字符串违反契约 → 明确报错 (0.260876ms)
+✔ DocumentEventBus：单个订阅者抛错不影响其他订阅者 (0.173125ms)
+✔ 标签：`(box)` 与 `modified-star` 并存且互不感知（同一行按注册顺序拼接） (8.464446ms)
+✔ 标签：只有 modified-star 时的缺省行为（不装 box 插件也没有 (box) 标签） (1.032087ms)
+✔ 树基线：没有标签插件时 tree 输出与阶段 1 逐字节一致（无尾随空格） (1.048587ms)
+✔ 双装配：box 会话在代码装配与配置装配下输出逐字节一致（含两个标签） (10.052493ms)
+✔ 配置装配：相对路径插件加载成功，注册进入内核且无错误行 (4.086265ms)
+✔ 配置装配：模块找不到 → error: plugin not found: <module> (1.810298ms)
+✔ 配置装配：没有默认导出 → error: plugin has no default export: <module> (2.252591ms)
+✔ 配置装配：清单声明与实际注册不一致 → error: plugin manifest mismatch: <name> (declared: …, registered: …) (4.580016ms)
+✔ 配置装配：activate 抛错 → error: plugin failed to activate: <name> (<reason>)，且其全部注册被撤销 (2.051341ms)
+✔ 配置装配：重复注册 → error: duplicate registration: <category>/<name> (1.653298ms)
+✔ 配置装配：模块存在但求值失败 → 报加载失败，不误报成模块找不到 (1.900923ms)
+✔ 配置装配：结构不合法 → error: invalid plugin config，且以默认内置能力继续启动 (3.101719ms)
+✔ 配置装配：enabled:false 完全跳过（不加载、不报错） (0.564669ms)
+✔ 配置装配：options 传给插件类构造函数 (1.658589ms)
+✔ 配置装配：按配置数组顺序加载，坏插件不影响好插件与后续插件 (2.123924ms)
+✔ 配置装配：配置文件不存在 → error: invalid plugin config（不抛异常） (2.487383ms)
+✔ 注册表：暂存区未 commit 时对内不可见，commit 后才生效 (1.628089ms)
+✔ 注册表：discard 的暂存区不产生任何写入 (0.251668ms)
+✔ 注册表：同一插件内重复注册名字在注册时即被拒绝 (0.609544ms)
+✔ 注册表：跨插件重复注册拒绝后一个，已成功的插件不受影响（整体回滚） (1.147462ms)
+✔ 注册表：清单声明与实际注册不一致时报 manifest mismatch (0.307668ms)
+✔ 注册表：没有清单（null）时不比对，但重复校验仍生效 (0.122584ms)
+✔ 注册表：扩展点契约违规给出可定位的错误（缺成员 / 空名字 / 非函数） (0.271042ms)
+✔ 注册表：同一插件名重复装载被拒绝 (0.176168ms)
+✔ ShapeFactory：注册表晚于工厂创建也能立即生效（不缓存类型表） (0.409918ms)
+✔ 注册表：属性处理器按优先级降序返回，只返回命中者 (0.935836ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 52
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 240.021208
+```
+
+## 2. 每个插件包独立可测
+
+### `plugins/stats`
+
+```text
+$ npm test --workspace @svgframe/plugin-stats
+✔ stats：混合文档按类型计数，容器单独计，根 svg 不计 (0.668377ms)
+✔ stats：类型顺序按首次出现顺序，与字母序无关 (0.109209ms)
+✔ stats：box 计入 containers，内部叶子照常计数（含嵌套） (0.140375ms)
+✔ stats：空文档输出 (total 0, containers 0) (0.0835ms)
+✔ stats：命令不带参数，多给参数报 usage (0.233126ms)
+✔ stats：通过插件上下文注册，命令自报名字/用法/摘要 (0.152709ms)
+✔ stats：执行后输出一行，且不改变文档状态（只读） (0.932128ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.307571
+```
+
+### `plugins/dir`
+
+```text
+$ npm test --workspace @svgframe/plugin-dir
+✔ dir：目录在前、文件在后，各组按名称升序；隐藏项列出，不含 . 与 .. (1.030129ms)
+✔ dir：空目录输出 (empty directory) (0.112209ms)
+✔ dir：读取失败报 error: cannot read directory: <path>，且不抛异常退出 (0.274751ms)
+✔ dir：特殊项（符号链接/设备等）单独标记为 [OTHER]，不遍历其目标 (0.106792ms)
+✔ dir：同一输入多次执行输出逐字节一致（稳定排序） (0.123126ms)
+✔ dir：不接受参数，多给参数报 usage (0.093542ms)
+✔ dir：插件注册一个命令，名字/用法/摘要自洽 (0.156209ms)
+✔ NodeDirectoryReader：真实文件系统下的混合目录（含隐藏项与符号链接） (1.654298ms)
+✔ DirCommand + 真实适配器：输出与固定目录内容一一对应（目录在前、文件在后） (2.076716ms)
+✔ NodeDirectoryReader：不存在的路径抛 DirectoryReadError（含目标路径） (0.290793ms)
+✔ DirCommand：真实适配器读取失败时折算成 error: cannot read directory (0.357209ms)
+✔ DirCommand + 真实适配器：空目录输出 (empty directory) (0.767878ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 74.83851
+```
+
+### `plugins/shape-box`
+
+```text
+$ npm test --workspace @svgframe/plugin-shape-box
+✔ box：命令创建时按派生规则造出 -rect 与 -label，位置沿用插件约定 (1.275463ms)
+✔ box：序列化带 data-kind="box"，且不重复写入几何 (0.208251ms)
+✔ box：append/insert 只接受派生的子部件（第三子部件、错误 id、错误类型都被拒绝） (0.495043ms)
+✔ box：remove 拒绝移除必要子部件 (0.157333ms)
+✔ box：afterChildren 校验必要子部件，缺失或类型错误都拒绝（不产生半个 box） (0.241876ms)
+✔ box：属性处理器把 fill 落到内部矩形、label 落到内部文字，且都在同一个事务里 (0.333793ms)
+✔ box：属性处理器在结构不完整时给出可定位的错误 (0.234293ms)
+✔ box：树标签只标注 box 行，其它图形与根行不加 (0.113875ms)
+✔ box：插件一次注册图形/属性/标签三类贡献 (0.202209ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 82.357203
+```
+
+### `plugins/tree-star`
+
+```text
+$ npm test --workspace @svgframe/plugin-tree-star
+✔ modified-star：刚建立/刚读入的文档没有未保存变化 → 全树无星 (3.788888ms)
+✔ modified-star：编辑后只有被改的行与根行带星（祖先容器不传播） (0.635835ms)
+✔ modified-star：保存后星全部消失（保存点 = 当前内容） (0.295209ms)
+✔ modified-star 状态机：编辑 → 保存 → 再编辑 → undo 回到保存点 (0.679336ms)
+✔ modified-star：新建节点立即带星，删除节点后根行仍带星 (0.36221ms)
+✔ modified-star：画布尺寸变化也算未保存变化（根行带星） (0.228709ms)
+✔ modified-star：两个实例互不影响（同进程多标签/多文档不串味） (0.234667ms)
+✔ modified-star：插件通过上下文注册一个标签，名字稳定 (0.536793ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 112.356515
+```
+
+### `plugins/shape-diamond`
+
+```text
+$ npm test --workspace @svgframe/plugin-shape-diamond
+✔ diamond：命令创建时按外接矩形生成四个角点，序列化为 <polygon points> (1.171671ms)
+✔ diamond：读回时由 points 反算外接矩形（round-trip 稳定） (0.250584ms)
+✔ diamond：points 不合法时拒绝读入（点数不足 / 坐标不是数字） (0.34896ms)
+✔ diamond：move/scale/set 几何走内核统一路径 (0.234543ms)
+✔ diamond：插件只贡献一个 ShapeProvider (0.135917ms)
+✔ diamond：属性回显走用户书写形式（x/y/width/height），points 只是序列化形式 (0.288293ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 77.519019
+```
+
+## 3. 全量回归（内核 + 插件 + 契约测试）
+
+```text
+$ npm test
+ℹ tests 158
+ℹ suites 0
+ℹ pass 158
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+```
