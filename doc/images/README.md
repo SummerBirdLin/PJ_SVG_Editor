@@ -26,6 +26,23 @@
 验收脚本 E2 项会重新生成并逐字节核对，因此不能手改。扩展本身的 39 个用例、`npm run build` 与 VSIX 打包在无 GUI 环境下同样可验证
 （VSCode API 由 `vscode-extension/test/support/FakeVscode.ts` 充当）。
 
+## 另两份「运行证据」
+
+作业里「插件与加载器测试」「功能兼容性验证」通常以终端输出提交，本仓库用**可复现的捕获日志**代替图片：
+[`doc/evidence/plugin-loader-tests.txt`](../evidence/plugin-loader-tests.txt)、
+[`doc/evidence/compatibility.txt`](../evidence/compatibility.txt)（文件头写了捕获时间、提交号与逐条命令，可原样重跑）。
+
+如果老师要求**图片版**，在装有同一份 `node_modules` 的环境（本仓库的 Linux 虚拟机终端，或 `dsh` 容器内）执行：
+
+```bash
+cd ~/work/软件设计\ pj
+npm test                     # → 截图存 doc/images/plugin-loader-tests.png
+node tools/verify-phase2.mjs # → 截图存 doc/images/compatibility.png
+```
+
+> macOS 侧共享目录里的 `node_modules` 是 Linux arm64 的二进制，**不要**在 macOS 直接跑；
+> 要么在虚拟机/容器终端里跑，要么先 `rm -rf node_modules && npm install` 再跑（会破坏容器侧依赖，需重装）。
+
 ## 复现步骤（拍同款）
 
 ```bash

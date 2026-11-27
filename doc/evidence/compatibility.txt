@@ -1,0 +1,87 @@
+# 功能兼容性验证输出（真机捕获）
+
+> 由以下命令实际运行产生，捕获时间 2026-11-27 17:45:46 CST，提交 `fd3df16`。
+> 目的：证明「阶段 1 的行为在阶段 2 逐字节不变」——不是靠肉眼比对，而是把 tag `final` 的代码重新跑一遍再比。
+
+## 0. 环境与基线来源
+
+```text
+$ node --version && uname -m
+v24.22.1
+aarch64
+$ git rev-parse 'final^{}'    # 阶段 1 的交付提交
+5e7e7cb56f7e51dcaa3bf97117e19a187443368f
+$ git archive final | tar -x -C <临时目录>    # 现取阶段 1 源码，不依赖任何已生成文件
+（解包到 /tmp/tmp.xUnmtMbUlZ，文件数 102）
+```
+
+## 1. 同一份会话输入，阶段 1 代码 vs 阶段 2（禁用全部插件）
+
+输入：`doc/transcript/cli-1.txt`（13 条命令：init/create/tree/show/set/move/scale/undo/redo/save/read/canvas）
+
+```text
+$ (阶段 1 代码) tsx src/main.ts < doc/transcript/cli-1.txt > final.out
+$ (阶段 2 代码 + 禁用全部插件) node --import tsx src/main.ts --config doc/transcript/plugins-none.config.json < doc/transcript/cli-1.txt > p2-none.out
+$ diff final.out p2-none.out && echo "（无差异）"
+（无差异：输出逐字节相同）
+$ sha256sum final.out p2-none.out
+f161716979c590e4bc2282f80b68d10a06bcbd90c9385c7932e7d859b45e8979  final.out
+f161716979c590e4bc2282f80b68d10a06bcbd90c9385c7932e7d859b45e8979  p2-none.out
+$ wc -l final.out p2-none.out
+  32 final.out
+  32 p2-none.out
+  64 total
+```
+
+## 2. 阶段 1 冻结基线（`doc/transcript/cli-1.baseline.expected`）
+
+```text
+$ diff doc/transcript/cli-1.baseline.expected <(阶段 1 代码重放)
+（无差异：冻结基线未被手改）
+$ sha256sum doc/transcript/cli-1.baseline.expected
+f161716979c590e4bc2282f80b68d10a06bcbd90c9385c7932e7d859b45e8979  doc/transcript/cli-1.baseline.expected
+```
+
+## 3. 一键验收脚本（20 项）
+
+```text
+$ node tools/verify-phase2.mjs
+仓库: /home/zhuanz1/work/软件设计 pj
+时间: 2026-11-27T09:45:46.923Z
+
+[PASS] A1 兼容性（禁用全部插件 vs final 基线）：输出与期望逐字节一致
+[PASS] A2 基线来源（tag final 重放）
+        tag final 的输出与 cli-1.baseline.expected 一致
+[PASS] B cli-1：代码装配 vs 配置装配：输出与期望逐字节一致
+[PASS] B cli-1（默认装配 vs cli-1.expected）：输出与期望逐字节一致
+[PASS] B box：代码装配 vs 配置装配：输出与期望逐字节一致
+[PASS] B box（默认装配 vs box.expected）：输出与期望逐字节一致
+[PASS] B commands：代码装配 vs 配置装配：输出与期望逐字节一致
+[PASS] B commands（默认装配 vs commands.expected）：输出与期望逐字节一致
+[PASS] C dir 工作目录内容在验证期间未改变
+        目录内容: demo.svg, docs, package.json, plugins
+[PASS] D1 方式 A（只改一个顶层装配文件）
+        改动 11 个文件，全部在允许范围内
+[PASS] D3 方式 A：只改一个顶层装配文件
+        src/host/CodePlugins.ts
+[PASS] D4 demo/assembly-code：排除新插件包后内核与既有插件差异为空
+[PASS] D2 方式 B（只改配置）
+        改动 11 个文件，全部在允许范围内
+[PASS] D3 方式 B：运行代码零改动
+[PASS] D4 demo/assembly-config：排除新插件包后内核与既有插件差异为空
+[PASS] E 加载器独立性：无具体插件 import / require / 模块名分支
+        （静态检查通过；按需求说明，这只是辅助人工检查）
+[PASS] E2 VSCode 等价证据可复现
+        两份文本与现场重算逐字节一致
+[PASS] G VSCode 真机截图齐备（A.1 徽标 / A.2 大纲）
+[PASS] F 指标脚本可运行（final → HEAD）
+        CLI 范围：文件 118（+44）、代码行 5001（+1983）、CC 1145（+422）
+            内核：文件 86、代码行 3696（+711）、CC 890（+171）
+            装配处：文件 12、代码行 542（+509）、CC 115（+111）
+            插件：文件 20、代码行 763（+763）、CC 140（+140）
+            未分类：文件 0、代码行 0（0）、CC 0（0）
+[PASS] F2 指标产物可复现（final → p2）
+        仓库产物与现场重算一致（仅 ref 行不同）
+
+=== 汇总：20/20 项通过 ===
+```

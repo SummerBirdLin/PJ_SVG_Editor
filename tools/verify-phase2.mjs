@@ -313,9 +313,10 @@ function checkVscodeEvidence() {
 }
 
 /**
- * G：Part A 的两张真机截图（需求第一部分「文件标记和大纲定位的截图」）。
- * 只做机械校验：存在、是 PNG、尺寸合理、被 doc/README.md 引用。
- * 「画面内容对不对」属于人眼验收，脚本不做假判断。
+ * G：提交证据齐备。
+ *  - 真机截图：doc/images/vscode-badge.png、vscode-outline.png（存在 / 是 PNG / 尺寸合理 / 被 README 引用）；
+ *  - 捕获输出：doc/evidence/plugin-loader-tests.txt、compatibility.txt（存在且非空）。
+ * 只做机械校验；「画面与数字对不对」由人眼与各自的复现命令验收，脚本不做假判断。
  */
 function checkScreenshots() {
   const readme = readFileSync(join(REPO, 'doc', 'README.md'), 'utf8');
@@ -341,7 +342,20 @@ function checkScreenshots() {
       problems.push(`${name} 未被 doc/README.md 引用`);
     }
   }
-  record('G VSCode 真机截图齐备（A.1 徽标 / A.2 大纲）', problems.length === 0, problems.join('；'));
+  for (const name of ['plugin-loader-tests.txt', 'compatibility.txt']) {
+    const file = join(REPO, 'doc', 'evidence', name);
+    if (!existsSync(file)) {
+      problems.push(`doc/evidence/${name} 不存在`);
+      continue;
+    }
+    if (statSync(file).size < 500) {
+      problems.push(`doc/evidence/${name} 内容过短`);
+    }
+    if (!readme.includes(`evidence/${name}`)) {
+      problems.push(`doc/evidence/${name} 未被 doc/README.md 引用`);
+    }
+  }
+  record('G 提交证据齐备（A.1/A.2 截图 + 测试/兼容性捕获输出）', problems.length === 0, problems.join('；'));
 }
 
 // ---------------------------------------------------------------- F. 指标
