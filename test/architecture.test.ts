@@ -121,6 +121,12 @@ test('依赖方向：src 下的 import 必须符合 §1.3 的矩阵', () => {
           if (!NODE_BUILTIN_ALLOWED.includes(fromModule)) {
             violations.push(`${file}: 平台 API 只允许出现在 io/main，实际在 ${fromModule}（${specifier}）`);
           }
+        } else if (specifier.startsWith('@svgframe/plugin-')) {
+          // 插件包只能由装配处（host）按包名引用：这是"代码装配"的入口，
+          // 内核与插件本身都不允许 import 具体插件包。
+          if (fromModule !== 'host') {
+            violations.push(`${file}: 只有装配处可以引用插件包，实际在 ${fromModule}（${specifier}）`);
+          }
         } else {
           violations.push(`${file}: 工程禁止第三方运行时依赖（${specifier}）`);
         }

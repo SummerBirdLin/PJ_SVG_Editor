@@ -11,12 +11,16 @@
     "cli": "tsx src/main.ts",
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test \"test/**/*.test.ts\""
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "test": "node --import tsx --test \"test/**/*.test.ts\" \"plugins/*/test/**/*.test.ts\"",
+    "metrics": "node tools/metrics/report.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "tsx": "^4.23.0",
     "typescript": "^5.9.0"
-  }
+  },
+  "workspaces": [
+    "plugins/*"
+  ]
 }

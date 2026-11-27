@@ -4,6 +4,7 @@ import type { TextOutput } from '../cli/TextOutput.js';
 import { NodeFileStore } from '../io/NodeFileStore.js';
 import { createApplication } from './Application.js';
 import { CodeAssembly } from './CodeAssembly.js';
+import { optionalPlugins } from './CodePlugins.js';
 import { ConfigAssembly } from './ConfigAssembly.js';
 import type { PluginAssembly } from './PluginAssembly.js';
 
@@ -53,7 +54,7 @@ export async function runCliMain(argv: readonly string[]): Promise<number> {
 
   const files = new NodeFileStore();
   const optionalAssembly: PluginAssembly = commandLine.configPath === null
-    ? new CodeAssembly([])
+    ? new CodeAssembly(optionalPlugins())
     : new ConfigAssembly(commandLine.configPath, (path) => files.readText(path));
 
   const output: TextOutput = {
