@@ -7,12 +7,23 @@
 | `vscode-badge.png` | 图 A.1 | `examples/` 下 `box.svg`、`demo.svg`、`flowchart.svg`、`other.svg` 右侧各有 `[]` 徽标；同目录的 `transcript-6.txt`、`transcript-61.txt` 与各文件夹**没有**徽标；文件名与内容都没被改动。右侧同时打开 `flowchart.svg`，大纲选中 `text#start-label`，编辑器高亮第 6 行。 | macOS 本地 VSCode，打开 OrbStack 虚拟机共享目录中的本仓库；`svg-marker-outline.vsix` 装在**本地**扩展宿主 |
 | `vscode-outline.png` | 图 A.2 | `vscode-extension/sample/nested.svg` 的原生「大纲」：`svg → title / defs → linearGradient#sky → stop, stop / g#layer1 → rect#bg / g（无 id）/ g#labels → text#caption / text（无 id） / rect`；选中 `circle#sun` 时编辑器定位到对应源码行。 | 同上 |
 
-两张图共同说明需求强调的四件事：
+另外两张是**运行证据**（作业要求的另外两项，见 README §7.5）：
+
+| 文件 | 对应 | 画面内容 | 拍摄环境 |
+|---|---|---|---|
+| `plugin-loader-tests.png` | 插件与加载器测试 | `npm test` 全量输出：加载器四条失败路径、重复注册与暂存区回滚、`box` 事务/回滚、两个树标签并存等用例逐条通过，末尾 `ℹ tests 158 / pass 158 / fail 0` | 同上（虚拟机终端 `zhuanz1@dsh:~/work/软件设计 pj`） |
+| `compatibility.png` | 功能兼容性验证 | `node tools/verify-phase2.mjs` 的 20 项明细：A1/A2（tag `final` 现场重放逐字节比对）、B（双装配一致）、C、D1–D4、E、E2、G、F/F2，末尾 `=== 汇总：20/20 项通过 ===` | 同上 |
+
+四张图共同说明需求强调的四件事：
 
 - 徽标是**视图装饰**：只出现在 Explorer 行尾，文件名与文件内容都不变；
 - **目录不加标记**：`examples/` 下的子目录没有徽标（与图 A.1 对照）；
 - 大纲按**真实嵌套层级**展开，且**无 id 元素只显示标签名**（`g`、`text`），不臆造 id；
 - `<title>`、`<defs>`、`<linearGradient>`、`<stop>` 这类**非图形元素**照样进大纲（Phase 1 的模型不建这些节点）。
+
+对应关系速查：**A.1 文件标记 → `vscode-badge.png`；A.2 原生大纲 → `vscode-outline.png`；
+插件与加载器测试 → `plugin-loader-tests.png`；功能兼容性验证 → `compatibility.png`。**
+四张都配了可复现的文本证据（`doc/evidence/` 下四个文件），验收脚本 G 项核对图片与文本齐备。
 
 ## 补充：无 GUI 环境下的等价证据
 
@@ -32,12 +43,12 @@
 [`doc/evidence/plugin-loader-tests.txt`](../evidence/plugin-loader-tests.txt)、
 [`doc/evidence/compatibility.txt`](../evidence/compatibility.txt)（文件头写了捕获时间、提交号与逐条命令，可原样重跑）。
 
-如果老师要求**图片版**，在装有同一份 `node_modules` 的环境（本仓库的 Linux 虚拟机终端，或 `dsh` 容器内）执行：
+图片版本已经提交（`plugin-loader-tests.png`、`compatibility.png`），是同两条命令在虚拟机终端里的截屏：
 
 ```bash
 cd ~/work/软件设计\ pj
-npm test                     # → 截图存 doc/images/plugin-loader-tests.png
-node tools/verify-phase2.mjs # → 截图存 doc/images/compatibility.png
+npm test                     # → doc/images/plugin-loader-tests.png
+node tools/verify-phase2.mjs # → doc/images/compatibility.png
 ```
 
 > macOS 侧共享目录里的 `node_modules` 是 Linux arm64 的二进制，**不要**在 macOS 直接跑；

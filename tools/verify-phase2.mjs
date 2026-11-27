@@ -314,14 +314,15 @@ function checkVscodeEvidence() {
 
 /**
  * G：提交证据齐备。
- *  - 真机截图：doc/images/vscode-badge.png、vscode-outline.png（存在 / 是 PNG / 尺寸合理 / 被 README 引用）；
+ *  - 真机截图 ×4：doc/images/{vscode-badge,vscode-outline,plugin-loader-tests,compatibility}.png
+ *    （存在 / 是 PNG / 尺寸合理 / 被 README 引用）；
  *  - 捕获输出：doc/evidence/plugin-loader-tests.txt、compatibility.txt（存在且非空）。
  * 只做机械校验；「画面与数字对不对」由人眼与各自的复现命令验收，脚本不做假判断。
  */
 function checkScreenshots() {
   const readme = readFileSync(join(REPO, 'doc', 'README.md'), 'utf8');
   const problems = [];
-  for (const name of ['vscode-badge.png', 'vscode-outline.png']) {
+  for (const name of ['vscode-badge.png', 'vscode-outline.png', 'plugin-loader-tests.png', 'compatibility.png']) {
     const file = join(REPO, 'doc', 'images', name);
     if (!existsSync(file)) {
       problems.push(`${name} 不存在`);
@@ -355,7 +356,7 @@ function checkScreenshots() {
       problems.push(`doc/evidence/${name} 未被 doc/README.md 引用`);
     }
   }
-  record('G 提交证据齐备（A.1/A.2 截图 + 测试/兼容性捕获输出）', problems.length === 0, problems.join('；'));
+  record('G 提交证据齐备（4 张截图 + 测试/兼容性捕获输出）', problems.length === 0, problems.join('；'));
 }
 
 // ---------------------------------------------------------------- F. 指标
