@@ -1,0 +1,46 @@
+# 原生大纲数据（A.2 等价证据）
+
+> 本文件由 `node_modules/.bin/tsx vscode-extension/tools/evidence.ts` 生成，不是截图：本机没有 `code` CLI / Xvfb，无法启动 Extension Development Host。
+> 界面截图（Explorer 的 `[]` 徽标、大纲面板）仍需在 VSCode Remote 里安装 VSIX 后拍摄，见 doc/images/README.md。
+> 但下面每一行都是**真实扩展代码**跑出来的（同一个 `ExtensionBootstrap`、同一套 Provider），只是渲染结果被文本化。
+
+
+文档选择器：`{"pattern":"**/*.svg"}`（不写 scheme、不写 language，Remote 与 .svg 语言归属都不受影响）
+
+## 1. 正常文件：`vscode-extension/sample/nested.svg`（36 行）
+
+```text
+- svg  (kind=11, range=[8:0 → 34:6], selection=[8:0 → 8:87])
+  - title  (kind=13, range=[9:2 → 9:44], selection=[9:2 → 9:9])
+  - defs  (kind=12, range=[11:2 → 16:9], selection=[11:2 → 11:8])
+    - linearGradient#sky  (kind=12, range=[12:4 → 15:21], selection=[12:4 → 12:57])
+      - stop  (kind=13, range=[13:6 → 13:45], selection=[13:6 → 13:45])
+      - stop  (kind=13, range=[14:6 → 14:45], selection=[14:6 → 14:45])
+  - g#layer1  (kind=12, range=[18:2 → 31:6], selection=[18:2 → 18:17])
+    - rect#bg  (kind=13, range=[19:4 → 19:73], selection=[19:4 → 19:73])
+    - g  (kind=12, range=[22:4 → 25:8], selection=[22:4 → 22:7])
+      - circle#sun  (kind=13, range=[23:6 → 23:63], selection=[23:6 → 23:63])
+      - line#horizon  (kind=13, range=[24:6 → 24:74], selection=[24:6 → 24:74])
+    - g#labels  (kind=12, range=[27:4 → 30:8], selection=[27:4 → 27:19])
+      - text#caption  (kind=13, range=[28:6 → 28:76], selection=[28:6 → 28:51])
+      - text  (kind=13, range=[29:6 → 29:56], selection=[29:6 → 29:38])
+  - rect  (kind=13, range=[33:2 → 33:59], selection=[33:2 → 33:59])
+```
+
+`range` = 整个元素（编辑器里高亮的范围）；`selectionRange` = 起始标签（点击大纲时光标落在哪里）。
+有 id 的元素显示 `标签名#id`，没有 id 的元素只显示标签名（不臆造 id）。
+
+## 2. 编辑到一半（XML 不完整）：截断到第 26 行
+
+```text
+（大纲为空，扩展不抛错；需求允许"暂时清空"）
+```
+
+## 3. 编辑后重新询问（把 `bg` 改成 `bg2`）
+
+```text
+    - rect#bg2  (kind=13, range=[19:4 → 19:74], selection=[19:4 → 19:74])
+```
+
+VSCode 在文档变更后会自己重新调用 `provideDocumentSymbols`，插件每次全量重算，因此改名立即反映到大纲。
+

@@ -21,7 +21,8 @@
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
-    "package": "npm run build && vsce package --no-dependencies --out svg-marker-outline.vsix"
+    "package": "npm run build && vsce package --no-dependencies --out svg-marker-outline.vsix",
+    "evidence": "tsx tools/evidence.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
