@@ -13,13 +13,11 @@
 | 项 | 值 |
 |---|---|
 | 基线 ref（`--from`） | `final` → annotated tag 对象 `52f24b5` → commit `5e7e7cb` |
-| 目标 ref（`--to`） | `HEAD` → commit 对象 `5e7e7cb` → commit `5e7e7cb` |
+| 目标 ref（`--to`） | `HEAD` → commit `d3251e0` |
 | 生成命令 | `node tools/metrics/report.mjs --from final --to HEAD` |
 | 基线内容来源 | `git ls-tree -r --name-only final` / `git show final:<path>`（扫描 88 个 TS 文件） |
 | 目标内容来源 | `git ls-tree -r --name-only HEAD` / `git show HEAD:<path>`（扫描 88 个 TS 文件） |
 | 统计口径版本 | `1`（口径说明见 [README.md](./README.md)） |
-
-> 注意：基线 `final` 与目标 `HEAD` 指向同一提交 `5e7e7cb`，因此下表所有增量为 0 —— 这是预期结果（目标 ref 尚未引入代码变更），也顺带验证了脚本的幂等性。
 
 ## 2. 按分区的行数 / 圈复杂度对照表
 

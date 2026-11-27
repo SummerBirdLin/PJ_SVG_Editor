@@ -12,12 +12,12 @@
     },
     "to": {
       "name": "HEAD",
-      "objectSha": "5e7e7cb56f7e51dcaa3bf97117e19a187443368f",
-      "commitSha": "5e7e7cb56f7e51dcaa3bf97117e19a187443368f",
+      "objectSha": "d3251e00c110d28b258ae8f8a09afa4b32a0ceb4",
+      "commitSha": "d3251e00c110d28b258ae8f8a09afa4b32a0ceb4",
       "objectType": "commit",
       "scannedTsFiles": 88
     },
-    "sameCommit": true
+    "sameCommit": false
   },
   "method": {
     "dataSource": "git ls-tree -r --name-only <ref> + git show <ref>:<path>（只读 git 历史，不读工作区）",

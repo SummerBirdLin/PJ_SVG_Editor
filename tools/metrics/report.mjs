@@ -1122,8 +1122,13 @@ function ruleFor(def) {
 }
 
 function refLine(refInfo) {
+  const short = (sha) => sha.slice(0, 7);
+  if (refInfo.objectSha === refInfo.commitSha) {
+    // 分支 / HEAD / commit sha：对象就是提交本身，不重复打印
+    return `\`${refInfo.name}\` → commit \`${short(refInfo.commitSha)}\``;
+  }
   const kind = refInfo.kind === 'tag' ? 'annotated tag 对象' : `${refInfo.kind} 对象`;
-  return `\`${refInfo.name}\` → ${kind} \`${refInfo.objectSha.slice(0, 7)}\` → commit \`${refInfo.commitSha.slice(0, 7)}\``;
+  return `\`${refInfo.name}\` → ${kind} \`${short(refInfo.objectSha)}\` → commit \`${short(refInfo.commitSha)}\``;
 }
 
 function renderMarkdown(comparison, meta) {
