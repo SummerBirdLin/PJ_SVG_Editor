@@ -1,0 +1,35 @@
+canvas 800x600 created
+g#flowchart created
+box#n1 created in g#flowchart
+line#arrow1 created in g#flowchart
+svg (800x600)
+└── g#flowchart
+    ├── box#n1 (box)
+    │   ├── rect#n1-rect   x=120 y=100 w=160 h=60
+    │   └── text#n1-label  (140,135) "处理数据"
+    └── line#arrow1  (280,130) -> (520,130)
+rect: 1  text: 1  line: 1  (total 3, containers 2)
+box#n1 updated: fill=#f5a623
+box#n1 updated: label=处理数据 v2
+svg (800x600)
+└── g#flowchart
+    ├── box#n1 (box)
+    │   ├── rect#n1-rect   x=120 y=100 w=160 h=60 fill=#f5a623
+    │   └── text#n1-label  (140,135) "处理数据 v2"
+    └── line#arrow1  (280,130) -> (520,130)
+box#n1 updated: label=处理数据
+svg (800x600)
+└── g#flowchart
+    ├── box#n1 (box)
+    │   ├── rect#n1-rect   x=120 y=100 w=160 h=60 fill=#f5a623
+    │   └── text#n1-label  (140,135) "处理数据"
+    └── line#arrow1  (280,130) -> (520,130)
+box#n1 updated: label=处理数据 v2
+box#n1 moved by (0,40)
+svg (800x600)
+└── g#flowchart
+    ├── box#n1 (box)
+    │   ├── rect#n1-rect   x=120 y=140 w=160 h=60 fill=#f5a623
+    │   └── text#n1-label  (140,175) "处理数据 v2"
+    └── line#arrow1  (280,130) -> (520,130)
+saved to examples/box.svg (5 elements)
