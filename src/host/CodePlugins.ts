@@ -1,4 +1,5 @@
 import DirPlugin from '@svgframe/plugin-dir';
+import ShapeBoxPlugin from '@svgframe/plugin-shape-box';
 import StatsPlugin from '@svgframe/plugin-stats';
 import type { PluginModule } from '../plugin-api/PluginContext.js';
 
@@ -13,5 +14,6 @@ export function optionalPlugins(): readonly PluginModule[] {
   return [
     new StatsPlugin(),
     new DirPlugin(),
+    new ShapeBoxPlugin(),
   ];
 }
