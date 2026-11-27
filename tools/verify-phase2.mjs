@@ -266,14 +266,29 @@ function checkLoaderIndependence() {
 
 // ---------------------------------------------------------------- F. 指标
 
+/** F：指标脚本可运行。产物写临时目录——验收过程不得弄脏工作区。 */
 function checkMetrics() {
   const script = join(REPO, 'tools', 'metrics', 'report.mjs');
   if (!existsSync(script)) {
     record('F 指标脚本', false, 'tools/metrics/report.mjs 不存在');
     return;
   }
-  const result = run('node', [script, '--from', 'final', '--to', 'HEAD']);
-  record('F 指标脚本可运行（final → HEAD）', result.status === 0, (result.stderr || result.stdout).slice(0, 400));
+  const outDir = mkdtempSync(join(tmpdir(), 'svgframe-metrics-run-'));
+  try {
+    const result = run('node', [script, '--from', 'final', '--to', 'HEAD', '--out-dir', outDir]);
+    const summary = (result.stdout || '')
+      .split('\n')
+      .filter((line) => /代码行|CC/.test(line))
+      .slice(0, 5)
+      .join('\n');
+    record(
+      'F 指标脚本可运行（final → HEAD）',
+      result.status === 0,
+      summary.trim() || (result.stderr || '').slice(0, 300),
+    );
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
 }
 
 /**
