@@ -16,6 +16,7 @@
  *     以及"排除新插件包后内核与既有插件差异为空"。
  *  E. 加载器独立性：静态检查加载器目录里没有具体插件的 import/映射表/分支。
  *  F. 指标：调用 tools/metrics/report.mjs（存在时）。
+ *  G. Part A 的两张真机截图齐备（存在 / 是 PNG / 尺寸合理 / 被 README 引用）。
  */
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -311,6 +312,38 @@ function checkVscodeEvidence() {
   }
 }
 
+/**
+ * G：Part A 的两张真机截图（需求第一部分「文件标记和大纲定位的截图」）。
+ * 只做机械校验：存在、是 PNG、尺寸合理、被 doc/README.md 引用。
+ * 「画面内容对不对」属于人眼验收，脚本不做假判断。
+ */
+function checkScreenshots() {
+  const readme = readFileSync(join(REPO, 'doc', 'README.md'), 'utf8');
+  const problems = [];
+  for (const name of ['vscode-badge.png', 'vscode-outline.png']) {
+    const file = join(REPO, 'doc', 'images', name);
+    if (!existsSync(file)) {
+      problems.push(`${name} 不存在`);
+      continue;
+    }
+    const bytes = readFileSync(file);
+    const isPng = bytes.length > 24 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    if (!isPng) {
+      problems.push(`${name} 不是 PNG`);
+      continue;
+    }
+    const width = bytes.readUInt32BE(16);
+    const height = bytes.readUInt32BE(20);
+    if (width < 800 || height < 400) {
+      problems.push(`${name} 尺寸过小：${String(width)}x${String(height)}`);
+    }
+    if (!readme.includes(`images/${name}`)) {
+      problems.push(`${name} 未被 doc/README.md 引用`);
+    }
+  }
+  record('G VSCode 真机截图齐备（A.1 徽标 / A.2 大纲）', problems.length === 0, problems.join('；'));
+}
+
 // ---------------------------------------------------------------- F. 指标
 
 /** F：指标脚本可运行。产物写临时目录——验收过程不得弄脏工作区。 */
@@ -381,6 +414,7 @@ checkDualAssembly();
 checkOpenClosedEvidence();
 checkLoaderIndependence();
 checkVscodeEvidence();
+checkScreenshots();
 checkMetrics();
 checkMetricsReproducible();
 

@@ -217,9 +217,10 @@ $ node tools/verify-phase2.mjs
 [PASS] D1/D2/D3/D4 开闭原则判据（§3.4，两条演示分支 × 改动范围/内核差异）
 [PASS] E 加载器独立性：无具体插件 import / require / 模块名分支
 [PASS] E2 VSCode 等价证据可复现（doc/evidence/ 与现场重算逐字节一致）
+[PASS] G VSCode 真机截图齐备（A.1 徽标 / A.2 大纲）
 [PASS] F 指标脚本可运行（final → HEAD）
 [PASS] F2 指标产物可复现（final → p2）
-=== 汇总：19/19 项通过 ===
+=== 汇总：20/20 项通过 ===
 ```
 
 三份会话输入在 `doc/transcript/`（`cli-1`、`box`、`commands`），期望输出与之一并提交，
@@ -559,16 +560,14 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 > 根包的 `scripts`、`src/`、`test/` **一行未改**，所以阶段 1 的 59 个用例与 VSCode 扩展互不影响。
 > 本部分自身的门槛：`npm run typecheck`、`npm run build`、`npm test`（39 个用例）全绿，`npm run package` 可产出 VSIX。
 >
-> **截图说明**：本机没有 `code` CLI / Xvfb，无法启动 Extension Development Host，因此**没有生成任何截图**（也不提交占位图）。
-> 下面两处是**预留位置**，由用户在 VSCode Remote 中安装 VSIX 后拍摄并放入 `doc/images/`：
-> `doc/images/vscode-badge.png`（Explorer 里 `.svg` 旁的 `[]` 徽标，含一个同名 `.svg` 目录与一个 `.md` 文件作对照）、
-> `doc/images/vscode-outline.png`（原生大纲的层级树 + 点击节点后光标落在起始标签上的瞬间）。
->
-> 截图之外还有一份**无 GUI 环境下的等价证据**：[`doc/evidence/vscode-badge.txt`](evidence/vscode-badge.txt)（徽标决策表：
-> 哪些 Uri 得到 `[]`、哪些连 `stat` 都不发、两段式刷新各触发几次）与
-> [`doc/evidence/vscode-outline.txt`](evidence/vscode-outline.txt)（`DocumentSymbol` 的层级、`range`/`selectionRange`、
-> 编辑到一半时清空而非崩溃）。它们由 `vscode-extension/tools/evidence.ts` 用**真实扩展代码**生成，
-> 可用 `npm run evidence`（在 `vscode-extension/` 下）复现，验收脚本的 E2 项会核对产物未被手改。
+> **截图（真机，见 [`doc/images/`](images/README.md)）**：A.1 与 A.2 各一张——
+> [`images/vscode-badge.png`](images/vscode-badge.png)（`examples/` 下四个 `.svg` 带 `[]`，同目录的 `.txt` 与各文件夹**不带**）、
+> [`images/vscode-outline.png`](images/vscode-outline.png)（`sample/nested.svg` 的嵌套大纲：无 id 的 `g`/`text` 只显示标签名，
+> `<title>`/`<defs>` 也进大纲）。拍摄环境：macOS 本地 VSCode 打开本仓库（OrbStack 虚拟机共享目录），VSIX 装在本地扩展宿主。
+> 本仓库的开发容器没有 `code` CLI / Xvfb / 浏览器运行库，拍不了图，所以**先**用真实扩展代码生成了可复现的**等价证据**：
+> [`doc/evidence/vscode-badge.txt`](evidence/vscode-badge.txt)（徽标决策表：哪些 Uri 得到 `[]`、哪些连 `stat` 都不发、两段式刷新各触发几次）与
+> [`doc/evidence/vscode-outline.txt`](evidence/vscode-outline.txt)（`DocumentSymbol` 的层级、`range`/`selectionRange`、编辑到一半时清空而非崩溃）。
+> 两者由 `vscode-extension/tools/evidence.ts` 生成、`npm run evidence` 可复现，验收脚本 E2 项核对未被手改；G 项核对截图齐备。
 
 ### 9.1 交付物与运行方式
 
@@ -603,6 +602,9 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 | 不要求完整 SVG 规范校验 / 图形预览 | ✅ | 只扫结构，不校验；无渲染代码 |
 
 ![SVG 文件标记](images/vscode-badge.png)
+
+*图 A.1：资源管理器里 `examples/` 下四个 `.svg` 右侧显示 `[]`；同目录的 `transcript-6.txt`、`transcript-61.txt` 与各文件夹没有徽标，
+文件名本身未被改动。右侧 `flowchart.svg` 的大纲选中 `text#start-label`，编辑器高亮第 6 行——徽标与大纲是两件独立的事，互不影响文件内容。*
 
 ### 9.2 A.1 文件标记：Explorer 里的 `[]`
 
@@ -672,6 +674,9 @@ Explorer: provideFileDecoration(uri)           插件: 命中缓存 → '[]'
 | 空文件 / 纯文本 / 只有注释 | `[]` | 没有可展示的结构，不算错误 |
 
 ![SVG 大纲与定位](images/vscode-outline.png)
+
+*图 A.2：`vscode-extension/sample/nested.svg` 的原生大纲——真实嵌套（`svg → defs → linearGradient#sky → stop…`、`g#layer1 → g → circle#sun`）、
+无 id 元素只显示标签名（`g`、`text`，不臆造 id）、非图形元素（`title`/`defs`）也照样进大纲；选中 `circle#sun` 时编辑器定位到对应源码行。*
 
 ### 9.4 A.3-1 VSCode 与插件的职责，以及"注册 → 调用"过程
 
