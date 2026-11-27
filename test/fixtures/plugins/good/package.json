@@ -1,0 +1,9 @@
+{
+  "name": "@svgframe/test-plugin-good",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "decorators": ["good-marker"]
+  }
+}

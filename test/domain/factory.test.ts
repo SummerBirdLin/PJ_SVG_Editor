@@ -5,13 +5,14 @@ import { SvgDocument } from '../../src/domain/SvgDocument.js';
 import { ShapeFactory } from '../../src/domain/shape/ShapeFactory.js';
 import type { ShapeInit } from '../../src/domain/shape/ShapeInit.js';
 import { GShape } from '../../src/domain/shape/GShape.js';
+import { createTestShapes } from '../support/Kernel.js';
 
 function init(attributes: Record<string, string> = {}, textContent: string | null = null): ShapeInit {
   return { attributes: new Map(Object.entries(attributes)), textContent };
 }
 
 test('ShapeFactory: create 六种内置类型，未注册类型报插件提示', () => {
-  const factory = new ShapeFactory();
+  const factory = createTestShapes();
   const rect = factory.create('rect', 'r1', init({ x: '1', y: '2', width: '3', height: '4', fill: '#eee' }));
   assert.equal(rect.label(), 'rect#r1');
   assert.deepEqual(rect.attributes(), [
@@ -35,7 +36,7 @@ test('ShapeFactory: create 六种内置类型，未注册类型报插件提示',
 });
 
 test('ShapeFactory: applyImportedAttributes 保留未知属性、样式与几何各归其位', () => {
-  const factory = new ShapeFactory();
+  const factory = createTestShapes();
   const rect = factory.create('rect', 'r1', init({
     x: '1', y: '2', width: '3', height: '4',
     fill: 'red',
@@ -55,7 +56,7 @@ test('ShapeFactory: applyImportedAttributes 保留未知属性、样式与几何
 });
 
 test('SvgDocument: locate 返回父容器与索引；elementCount 不含画布；isIdTaken', () => {
-  const factory = new ShapeFactory();
+  const factory = createTestShapes();
   const document = new SvgDocument(400, 300);
   const group = factory.create('g', 'g1', init()) as GShape;
   const rect = factory.create('rect', 'r1', init({ x: '0', y: '0', width: '10', height: '10' }));

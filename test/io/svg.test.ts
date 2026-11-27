@@ -6,11 +6,12 @@ import { GShape } from '../../src/domain/shape/GShape.js';
 import { SvgReader } from '../../src/io/SvgReader.js';
 import { SvgWriter } from '../../src/io/SvgWriter.js';
 import { XmlParser } from '../../src/io/xml/XmlParser.js';
+import { createTestShapes } from '../support/Kernel.js';
 
 const SVG_HEAD = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">';
 
 function decode(body: string): ReturnType<SvgReader['decode']> {
-  return new SvgReader(new ShapeFactory()).decode(`${SVG_HEAD}${body}</svg>`);
+  return new SvgReader(createTestShapes()).decode(`${SVG_HEAD}${body}</svg>`);
 }
 
 test('XmlParser: 声明/注释/实体/自闭合/嵌套文本', () => {
@@ -88,7 +89,7 @@ test('SvgReader: transform 保留但不参与坐标；未知 data-kind 降级为
 });
 
 test('SvgWriter: 属性顺序、缩进、text 子文本与转义', () => {
-  const factory = new ShapeFactory();
+  const factory = createTestShapes();
   const reader = new SvgReader(factory);
   const { document } = reader.decode(
     `${SVG_HEAD}<rect id="r1" x="1" y="2" width="3" height="4" fill="red" fill-opacity="0.5"/>`
@@ -108,36 +109,36 @@ test('SvgWriter: 属性顺序、缩进、text 子文本与转义', () => {
 });
 
 test('SvgReader/SvgWriter: 编码→解码→编码 幂等（round-trip）', () => {
-  const factory = new ShapeFactory();
+  const factory = createTestShapes();
   const first = new SvgReader(factory).decode(
     `${SVG_HEAD}<g id="flow"><rect id="a" x="1.5" y="2" width="10" height="20" fill="#4a90d9"/>`
       + '<line id="e" x1="0" y1="0" x2="10" y2="10" stroke="black"/></g></svg>',
   ).document;
   const writer = new SvgWriter();
   const text = writer.encode(first);
-  const second = new SvgReader(new ShapeFactory()).decode(text);
+  const second = new SvgReader(createTestShapes()).decode(text);
   assert.equal(second.warnings.length, 0);
   assert.equal(writer.encode(second.document), text);
 });
 
 test('SvgReader: 缺 width/height 回退 800x600；根元素必须是 svg', () => {
-  const result = new SvgReader(new ShapeFactory()).decode('<svg><rect id="a"/></svg>');
+  const result = new SvgReader(createTestShapes()).decode('<svg><rect id="a"/></svg>');
   assert.equal(result.document.width(), 800);
   assert.equal(result.document.height(), 600);
   assert.throws(
-    () => new SvgReader(new ShapeFactory()).decode('<g id="a"/>'),
+    () => new SvgReader(createTestShapes()).decode('<g id="a"/>'),
     (error: unknown) =>
       error instanceof EditorError
       && error.message === 'invalid svg: root element must be <svg>, got <g>',
   );
   assert.throws(
-    () => new SvgReader(new ShapeFactory()).decode('<svg><rect></svg>'),
+    () => new SvgReader(createTestShapes()).decode('<svg><rect></svg>'),
     /invalid svg: mismatched closing tag/,
   );
 });
 
 test('SvgReader: text 子元素按顺序展平并告警；viewBox 回退画布尺寸', () => {
-  const result = new SvgReader(new ShapeFactory()).decode(
+  const result = new SvgReader(createTestShapes()).decode(
     '<svg viewBox="0 0 200 100"><text id="t1" x="1" y="2">a<tspan>中</tspan>b</text></svg>',
   );
   assert.deepEqual(result.warnings, ['warning: flattened nested elements in text#t1']);
@@ -152,7 +153,7 @@ test('XmlParser: 超深嵌套报 invalid svg，而不是栈溢出崩溃', () => 
   const deep = `<svg>${'<g>'.repeat(300)}${'</g>'.repeat(300)}</svg>`;
   assert.throws(() => new XmlParser().parse(deep), /invalid svg: nesting too deep/);
   assert.throws(
-    () => new SvgReader(new ShapeFactory()).decode(deep),
+    () => new SvgReader(createTestShapes()).decode(deep),
     /invalid svg: nesting too deep/,
   );
 });

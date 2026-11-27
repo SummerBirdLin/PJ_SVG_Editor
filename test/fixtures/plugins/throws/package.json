@@ -1,0 +1,9 @@
+{
+  "name": "@svgframe/test-plugin-throws",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "contributes": {
+    "decorators": ["half-registered"]
+  }
+}

@@ -8,19 +8,39 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
  * 违反规则 = 测试失败，因此"一致性自查"不是靠人工抽样。
  */
 
-type ModuleName = 'domain' | 'commands' | 'ports' | 'io' | 'app' | 'cli' | 'main';
+type ModuleName =
+  | 'domain'
+  | 'plugin-api'
+  | 'commands'
+  | 'ports'
+  | 'io'
+  | 'app'
+  | 'cli'
+  | 'builtin'
+  | 'host'
+  | 'main';
 
+/**
+ * 阶段 2 的依赖矩阵：
+ * - `plugin-api` 是内核的扩展点层，只依赖 domain（插件只允许依赖它与 domain）；
+ * - `commands` 可以问 `plugin-api` 要属性处理器，方向仍是"向上用接口"；
+ * - `builtin`（内置插件）只依赖 domain/commands/plugin-api，不比第三方插件多任何特权；
+ * - `host` 是装配处（组合根 + 加载器），唯一允许认识所有人的地方。
+ */
 const ALLOWED: Readonly<Record<ModuleName, readonly ModuleName[]>> = {
   domain: [],
-  commands: ['domain'],
+  'plugin-api': ['domain'],
+  commands: ['domain', 'plugin-api'],
   ports: ['domain'],
   io: ['domain', 'ports'],
-  app: ['domain', 'commands', 'ports'],
-  cli: ['domain', 'commands', 'app'],
-  main: ['domain', 'commands', 'ports', 'io', 'app', 'cli'],
+  app: ['domain', 'commands', 'ports', 'plugin-api'],
+  cli: ['domain', 'commands', 'app', 'plugin-api'],
+  builtin: ['domain', 'commands', 'plugin-api'],
+  host: ['domain', 'plugin-api', 'commands', 'ports', 'io', 'app', 'cli', 'builtin'],
+  main: ['host'],
 };
 
-const NODE_BUILTIN_ALLOWED: readonly ModuleName[] = ['io', 'main'];
+const NODE_BUILTIN_ALLOWED: readonly ModuleName[] = ['io', 'host'];
 
 interface ImportStatement {
   readonly fromFile: string;

@@ -1,0 +1,6 @@
+{
+  "name": "@svgframe/test-plugin-no-default",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts"
+}

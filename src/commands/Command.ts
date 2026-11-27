@@ -1,6 +1,7 @@
 import { EditorError } from '../domain/EditorError.js';
 import { GShape } from '../domain/shape/GShape.js';
 import type { LocatedShape, SvgDocument } from '../domain/SvgDocument.js';
+import type { UndoableEdit } from '../plugin-api/EditHost.js';
 import type { CommandContext } from './CommandContext.js';
 
 /**
@@ -10,7 +11,7 @@ import type { CommandContext } from './CommandContext.js';
  * 子类另外提供静态的 `commandName` / `usage` / `summary` / `parse`，
  * 供 CLI 注册表与 help 复用（不引入第二套按名分派）。
  */
-export abstract class Command {
+export abstract class Command implements UndoableEdit {
   abstract execute(context: CommandContext): string;
 
   abstract undo(context: CommandContext): string;
