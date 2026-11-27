@@ -67,6 +67,7 @@ function readExpected(name) {
 
 function compareOutput(label, actual, expected) {
   if (actual === expected) {
+    record(`${label}：输出与期望逐字节一致`, true);
     return true;
   }
   const actualLines = actual.split('\n');
