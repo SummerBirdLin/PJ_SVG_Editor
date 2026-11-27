@@ -13,10 +13,10 @@
 | 项 | 值 |
 |---|---|
 | 基线 ref（`--from`） | `final` → annotated tag 对象 `52f24b5` → commit `5e7e7cb` |
-| 目标 ref（`--to`） | `HEAD` → commit `9459945` |
+| 目标 ref（`--to`） | `HEAD` → commit `652e12b` |
 | 生成命令 | `node tools/metrics/report.mjs --from final --to HEAD` |
 | 基线内容来源 | `git ls-tree -r --name-only final` / `git show final:<path>`（扫描 88 个 TS 文件） |
-| 目标内容来源 | `git ls-tree -r --name-only HEAD` / `git show HEAD:<path>`（扫描 179 个 TS 文件） |
+| 目标内容来源 | `git ls-tree -r --name-only HEAD` / `git show HEAD:<path>`（扫描 180 个 TS 文件） |
 | 统计口径版本 | `1`（口径说明见 [README.md](./README.md)） |
 
 ## 2. 按分区的行数 / 圈复杂度对照表
@@ -83,7 +83,7 @@
 
 | 范围 | 文件数 | 代码行（final） | 代码行（目标） | 代码行增量 | CC（仅供参考） |
 |---|---:|---:|---:|---:|---:|
-| `vscode-extension/` | 18 | 0 | 1292 | +1292 | 226 |
+| `vscode-extension/` | 19 | 0 | 1437 | +1437 | 252 |
 
 VSCode 扩展是 CLI 之外的另一个交付物（自己的打包与依赖），把它混进 CLI 增量会掩盖真正的重构收益，因此口径上完全隔离：只列数字，不进第 2 节的任何一行。
 
@@ -300,6 +300,7 @@ VSCode 扩展是 CLI 之外的另一个交付物（自己的打包与依赖）�
 | `vscode-extension/test/outlineParser.test.ts` | 新增 | 150 | — | 17 | 24 |
 | `vscode-extension/test/outlineProvider.test.ts` | 新增 | 156 | — | 12 | 13 |
 | `vscode-extension/test/support/FakeVscode.ts` | 新增 | 121 | — | 20 | 24 |
+| `vscode-extension/tools/evidence.ts` | 新增 | 145 | — | 7 | 26 |
 
 ## 7. 方法与局限（摘要）
 

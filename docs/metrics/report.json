@@ -12,10 +12,10 @@
     },
     "to": {
       "name": "HEAD",
-      "objectSha": "94599456953eb6d7a4066a0ae5ca569778e9d370",
-      "commitSha": "94599456953eb6d7a4066a0ae5ca569778e9d370",
+      "objectSha": "652e12bd88218495c223952b3fbde9b12f4df39e",
+      "commitSha": "652e12bd88218495c223952b3fbde9b12f4df39e",
       "objectType": "commit",
-      "scannedTsFiles": 179
+      "scannedTsFiles": 180
     },
     "sameCommit": false
   },
@@ -387,38 +387,38 @@
       "label": "VSCode 扩展",
       "files": {
         "from": 0,
-        "to": 18,
-        "delta": 18
+        "to": 19,
+        "delta": 19
       },
       "codeLines": {
         "from": 0,
-        "to": 1292,
-        "delta": 1292
+        "to": 1437,
+        "delta": 1437
       },
       "commentLines": {
         "from": 0,
-        "to": 182,
-        "delta": 182
+        "to": 197,
+        "delta": 197
       },
       "blankLines": {
         "from": 0,
-        "to": 221,
-        "delta": 221
+        "to": 244,
+        "delta": 244
       },
       "physicalLines": {
         "from": 0,
-        "to": 1695,
-        "delta": 1695
+        "to": 1878,
+        "delta": 1878
       },
       "functions": {
         "from": 0,
-        "to": 121,
-        "delta": 121
+        "to": 128,
+        "delta": 128
       },
       "cc": {
         "from": 0,
-        "to": 226,
-        "delta": 226
+        "to": 252,
+        "delta": 252
       },
       "maxFn": 28,
       "maxFnFile": "vscode-extension/src/outline/OutlineParser.ts",
@@ -3489,6 +3489,22 @@
       "deltaCc": null,
       "maxFn": 2,
       "maxFnName": "FakeVscode.fileTypeOf"
+    },
+    {
+      "path": "vscode-extension/tools/evidence.ts",
+      "scope": "vscode",
+      "category": null,
+      "status": "新增",
+      "codeLines": 145,
+      "commentLines": 15,
+      "blankLines": 23,
+      "physicalLines": 183,
+      "deltaCodeLines": null,
+      "functions": 7,
+      "cc": 26,
+      "deltaCc": null,
+      "maxFn": 13,
+      "maxFnName": "collectBadgeEvidence"
     }
   ],
   "notes": [
