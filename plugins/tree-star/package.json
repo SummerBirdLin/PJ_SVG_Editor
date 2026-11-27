@@ -1,0 +1,20 @@
+{
+  "name": "@svgframe/plugin-tree-star",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SVG frame plugin: `modified-star` tree label (unsaved-change marker)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "contributes": {
+    "decorators": [
+      "modified-star"
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\""
+  }
+}

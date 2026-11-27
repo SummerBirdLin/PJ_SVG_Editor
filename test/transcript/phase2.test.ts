@@ -31,7 +31,7 @@ async function* linesOf(items: readonly string[]): AsyncIterable<string> {
   }
 }
 
-for (const name of ['box']) {
+for (const name of ['cli-1', 'box']) {
   test(`transcript ${name}：回放输出与 .expected 逐字节一致`, async () => {
     const expected = readFileSync(join('doc', 'transcript', `${name}.expected`), 'utf8')
       .split('\n')
