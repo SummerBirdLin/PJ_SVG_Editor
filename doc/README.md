@@ -544,6 +544,30 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 - `tsc --noEmit`：内核 `strict` + `noUncheckedIndexedAccess` + `verbatimModuleSyntax`；每个插件包各自一份 `tsconfig.json`（继承根配置）。
 - `npm run build` 产物 `dist/` 可用 `node dist/main.js` 直接跑（阶段 1 的用法不变）。
 
+### 7.5 运行证据（真机截图 + 可复现日志）
+
+作业要求提交「插件与加载器测试」「功能兼容性验证」「VSCode 扩展运行截图」三份证据，这里各给一份**真机截图**，
+外加可原样重跑的文本日志（[`doc/evidence/`](evidence)，验收脚本 G 项核对齐备）。
+
+**① 插件与加载器测试**（`zhuanz1@dsh:~/work/软件设计 pj$ npm test`，全量 158 用例）
+
+![插件与加载器测试](images/plugin-loader-tests.png)
+
+*图 7-1：加载器四条失败路径（`plugin not found` / `no default export` / `manifest mismatch (declared: …, registered: …)` /
+`failed to activate`，后者断言"其全部注册被撤销"）、重复注册 `duplicate registration: <category>/<name>`、
+暂存区 `discard` 零写入、跨插件重复注册整体回滚、`box` 的事务/回滚、两个树标签并存等用例逐条通过；
+末尾 `ℹ tests 158 / pass 158 / fail 0`。完整输出见 [`doc/evidence/plugin-loader-tests.txt`](evidence/plugin-loader-tests.txt)。*
+
+**② 功能兼容性验证**（`node tools/verify-phase2.mjs`，20 项）
+
+![功能兼容性验证](images/compatibility.png)
+
+*图 7-2：A1/A2 用 tag `final` 的代码现场重放并按字节比对（阶段 1 行为未变）、B 三份会话在两种装配下逐字节一致、
+*C `dir` 固定目录未被改动、D1–D4 开闭原则判据、E 加载器无具体插件依赖、E2 等价证据可复现、G 证据齐备、F/F2 指标可复现；
+`=== 汇总：20/20 项通过 ===`。逐行说明见 [`doc/evidence/compatibility.txt`](evidence/compatibility.txt)。*
+
+**③ VSCode 扩展运行截图**：见 [§9](#9-第一部分vscode-插件实践) 的图 A.1（`[]` 徽标）与图 A.2（原生大纲）。
+
 ---
 
 ## 8. 决策记录（ADR）
