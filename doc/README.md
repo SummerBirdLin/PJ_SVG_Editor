@@ -71,7 +71,7 @@ node tools/metrics/report.mjs     # 重新生成 docs/metrics/report.md（final 
 
 | 扩展点 | 接口（`src/plugin-api/`） | 内核调用点 | 内置实现 | 本阶段新增实现 | 不装插件时的行为 | 违约时的文案 |
 |---|---|---|---|---|---|---|
-| **`ShapeProvider`**<br>图形类型 | `src/domain/shape/provider/ShapeProvider.ts`：`typeName`、`svgTag`、`dataKind`、`creationAttributes`、`create(id, init)`、`afterChildren(shape)` | `src/domain/shape/ShapeFactory.ts`（按类型名/标签查表，经 `ShapeProviderLookup`）；`src/io/SvgReader.ts:59` 按标签取 Provider、`:119` 读回后调 `afterChildren` | 7 个（`svg`/`g`/`rect`/`circle`/`ellipse`/`line`/`text`） | `box` | `create box …` → `error: unknown shape type: box`；读入 `data-kind="box"` → `warning: unknown shape kind 'box', kept as plain g` 并降级为 `g` | `error: duplicate registration: shapes/box`（重名）；`error: plugin manifest mismatch: …`（清单不符）；`afterChildren` 抛错 → 整个 `read` 失败 |
+| **`ShapeProvider`**<br>图形类型 | `src/domain/shape/provider/ShapeProvider.ts`：`typeName`、`svgTag`、`dataKind`、`creationAttributes`、`create(id, init)`、`afterChildren(shape)` | `src/domain/shape/ShapeFactory.ts`（按类型名/标签查表，经 `ShapeProviderLookup`）；`src/io/SvgReader.ts:59` 按标签取 Provider、`:119` 读回后调 `afterChildren` | 6 个（`rect`/`circle`/`ellipse`/`line`/`text`/`g`；根 `<svg>` 由 `CanvasShape` 承担，不需要 Provider） | `box` | `create box …` → `error: unknown shape type: box`；读入 `data-kind="box"` → `warning: unknown shape kind 'box', kept as plain g` 并降级为 `g` | `error: duplicate registration: shapes/box`（重名）；`error: plugin manifest mismatch: …`（清单不符）；`afterChildren` 抛错 → 整个 `read` 失败 |
 | **`Command`**<br>命令 | `src/plugin-api/CommandContribution.ts`：`commandName`、`usage`、`summary`、`create(args, env) → { run(host) }` | `src/host/CommandSetup.ts:19` `createCommandRegistry()` 组装命令表（顺序：文档动作 → 插件命令 → 显示动作）；`src/cli/CommandRegistry.ts` 按名字分派；适配器 `src/cli/PluginCommandEntry.ts` | 10 个编辑命令（`src/builtin/BuiltinEditCommands.ts`，经 `EditCommandContribution`） | `stats`、`dir` | `error: unknown command: stats`（与阶段 1 的未知命令一致） | `error: duplicate registration: commands/stats`；缺 `usage`/`summary`/`commandName` → 契约错误（`error: plugin failed to activate: … (plugin contract violated: …)`） |
 | **`TreeDecorator`**<br>树标签 | `src/plugin-api/TreeDecorator.ts`：`decoratorName`、`labelFor(ctx)`、`onDocumentEvent(event)` | `src/cli/presenter/TreePresenter.ts:84`（逐行调用、按注册顺序用空格拼接、异常折算文案）；`src/cli/action/TreeAction.ts` 把装饰器注入 `ActionContext`；`src/app/EditorSession.ts` 通过 `DocumentEventBus` 发事件 | 无（阶段 1 的树输出就是"没有装饰器"） | `box-type-label`（`(box)`）、`modified-star`（`*`） | `tree` 输出与阶段 1 **逐字节相同**（不追加空格） | `error: tree decorator failed: <name> (<reason>)`（抛异常或返回非字符串） |
 | **`AttributeHandler`**<br>属性语义 | `src/plugin-api/AttributeHandler.ts`：`handlerName`、`priority`、`handles(target, attr)`、`apply(target, attr, value, changes)`；写操作统一走 `src/plugin-api/AttributeChanges.ts` | `src/commands/SetCommand.ts`（按 `priority` 降序选一个处理器；命中则整条 `set` 交它执行；失败回滚并**不写历史**） | 无（阶段 1 的白名单逻辑保留为"没有处理器命中"时的缺省路径） | `box-attributes`（`fill` → 内部矩形，`label` → 内部文字） | `set n1 label …` → `error: unknown attribute: label`（阶段 1 白名单行为） | `error: ambiguous attribute handler: label (box-attributes, other)`（最高优先级并列 → 拒绝而非按注册顺序取） |
@@ -238,7 +238,7 @@ A2 还会现取 `git archive final` 重放一遍，确认基线文件没有被�
 | 端口/IO | `src/ports`、`src/io` | 文件与编解码端口；SVG 读写适配器 | `SvgReader` 增加 `afterChildren` 校验点 |
 | 应用层 | `src/app` | `EditorSession`：文档替换/保存/编辑的唯一入口，兼 `CommandHost` | 增加事件发布与 `commitEdit` |
 | 表现层 | `src/cli` | REPL、命令表、Presenter | `CommandRegistry` 改为吃"排好序的条目"；`TreePresenter` 支持装饰器 |
-| 内置插件 | `src/builtin` | 7 个图形 Provider + 10 个编辑命令，以插件形式注册 | **全新**（代码来自阶段 1，改为贡献项） |
+| 内置插件 | `src/builtin` | 6 个图形 Provider + 10 个编辑命令，以插件形式注册 | **全新**（代码来自阶段 1，改为贡献项） |
 | 装配处 | `src/host`、`src/main.ts` | 组合根、加载器、配置装配、CLI 入口、会话动作 | **全新** |
 | 可选插件 | `plugins/*` | 4 个独立插件包（各自 `package.json`/`tsconfig`/测试） | **全新** |
 
@@ -608,7 +608,7 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 **为什么判定不能"一问了之"（本部分最核心的一个取舍）**：
 
 ```text
-Explorer: provideFileDecoration(uri)           插件: 后候？未知 → 返回 undefined（这一帧没徽标）
+Explorer: provideFileDecoration(uri)           插件: 后缀是 .svg 但类型未知 → undefined（这一帧先不标）
                                               ↓ 后台 workspace.fs.stat（异步）
                                               ↓ 结论写入缓存
 Explorer: onDidChangeFileDecorations(uri) ←──── 只有"加不加标记"真的变了才 fire
