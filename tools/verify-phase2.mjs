@@ -275,6 +275,39 @@ function checkMetrics() {
   record('F 指标脚本可运行（final → HEAD）', result.status === 0, (result.stderr || result.stdout).slice(0, 400));
 }
 
+/**
+ * F2：指标产物可复现。仓库里提交的 report.md 是用同一脚本生成的；
+ * 重新按 `--from final --to p2` 算一遍，除了「目标 ref / 命令」那几行，其余必须逐字节一致。
+ */
+function checkMetricsReproducible() {
+  const tagExists = run('git', ['rev-parse', '--verify', '--quiet', 'p2']).status === 0;
+  if (!tagExists) {
+    record('F2 指标产物可复现（final → p2）', false, '本地还没有 tag p2：打完 tag 后本项才有意义');
+    return;
+  }
+  const outDir = mkdtempSync(join(tmpdir(), 'svgframe-metrics-'));
+  try {
+    const result = run('node', [join(REPO, 'tools', 'metrics', 'report.mjs'), '--from', 'final', '--to', 'p2', '--out-dir', outDir]);
+    if (result.status !== 0) {
+      record('F2 指标产物可复现（final → p2）', false, (result.stderr || result.stdout).slice(0, 300));
+      return;
+    }
+    const normalize = (text) => text
+      .split('\n')
+      .filter((line) => !/^\| 目标 ref|^- 目标 ref|^> 目标|目标 ref（/.test(line.trim()) && !/--to (HEAD|p2)/.test(line))
+      .join('\n');
+    const committed = normalize(readFileSync(join(REPO, 'docs', 'metrics', 'report.md'), 'utf8'));
+    const fresh = normalize(readFileSync(join(outDir, 'report.md'), 'utf8'));
+    record(
+      'F2 指标产物可复现（final → p2）',
+      committed === fresh,
+      committed === fresh ? '仓库产物与现场重算一致（仅 ref 行不同）' : '产物与现场重算不一致，请重新生成',
+    );
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
+}
+
 // ---------------------------------------------------------------- main
 
 process.stdout.write(`仓库: ${REPO}\n时间: ${new Date().toISOString()}\n\n`);
@@ -283,6 +316,7 @@ checkDualAssembly();
 checkOpenClosedEvidence();
 checkLoaderIndependence();
 checkMetrics();
+checkMetricsReproducible();
 
 process.stdout.write(`\n=== 汇总：${String(results.length - failed)}/${String(results.length)} 项通过 ===\n`);
 if (failed > 0) {

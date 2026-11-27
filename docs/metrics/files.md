@@ -146,17 +146,33 @@
 | `src/ports/SvgDecoder.ts` | `SVG 文本 → 文档 + 告警` 的端口接口 | 内核 |
 | `src/ports/SvgEncoder.ts` | `文档 → SVG 文本` 的端口接口 | 内核 |
 
-## 阶段 2 新增（由 Lead 在节点 2 补齐）
+## 阶段 2 新增（按目录说明职责）
 
-阶段 1 分支上不存在这些目录，故此处**不编造文件**；下列为阶段 2 计划新增的目录，待阶段 2 代码定稿后逐文件补齐
-（补齐时沿用上面的三列格式，类别按固定口径填：`src/plugin-api/` → 内核，`src/host/` 与 `plugins.config.json` → 装配处，
-`src/builtin/` 与 `plugins/<name>/` → 插件，`vscode-extension/` 归第 4 节单列、不写进 CLI 表）。
+阶段 2 的新增文件**逐文件的行数/CC 由脚本生成**，不再在本文件里手工维护一份会过期的清单
+（手工抄数字正是需求禁止的做法）。逐文件明细见 [report.md](./report.md) 第 6 节
+（`6.1 内核` / `6.2 装配处与插件` / `6.3 VSCode 扩展`，含"新增/变更/保留"状态）。
+
+这里只保留**职责**说明（人写，属于设计信息）：
 
 | 路径 | 职责 | 类别 |
 |---|---|---|
-| `src/plugin-api/**` | 扩展点接口（插件只能依赖它的类型） | 内核（待补齐） |
-| `src/host/**` | 组合根 + 插件加载器 | 装配处（待补齐） |
-| `src/builtin/**` | 内置图形 / 命令以插件形式注册 | 插件（待补齐） |
-| `plugins/<name>/**` | 各插件包（`@svgframe/plugin-*`） | 插件（待补齐） |
-| `plugins.config.json` | 插件装配配置（JSON，非 `*.ts`，不计行数/CC） | 装配处（待补齐） |
+| `src/plugin-api/EditHost.ts`、`CommandContribution.ts` | 命令扩展点：命令只拿到"文档 + 提交编辑 + 属性处理器"三样东西 | 内核（扩展点层） |
+| `src/plugin-api/TreeDecorator.ts`、`ShapeTarget.ts`、`AttributeHandler.ts` | 树标签 / 属性语义扩展点（含目标视图与处理器接口） | 内核（扩展点层） |
+| `src/plugin-api/AttributeChanges.ts` | 属性写入事务记录：一次 `set` 的 undo 单元 | 内核（扩展点层） |
+| `src/plugin-api/ContributionRegistry.ts`、`ContributionDeclarations.ts`、`PluginContext.ts`、`PluginErrors.ts` | 暂存区 + 注册表：跨插件查重、清单比对、回滚 | 内核（扩展点层） |
+| `src/plugin-api/DocumentEvent.ts`、`ShapeSnapshot.ts` | 文档事件总线（replaced/saved/changed）与内容快照（dirty 判定素材） | 内核（扩展点层） |
+| `src/domain/shape/provider/ShapeProviderLookup.ts` | 类型/标签 → Provider 的查表接口（`ShapeFactory` 不再硬编码类型表） | 内核 |
+| `src/host/Application.ts`、`CliMain.ts`、`SessionActions.ts` | 组合根、CLI 入口、会话动作（9 条非扩展点命令） | 装配处 |
+| `src/host/PluginAssembly.ts`、`CodeAssembly.ts`、`ConfigAssembly.ts`、`CodePlugins.ts` | 两条装配路径；代码装配的唯一改动点就是 `CodePlugins.ts` | 装配处 |
+| `src/host/PluginModuleResolver.ts`、`PluginActivation.ts`、`PluginConfig.ts` | 插件解析/实例化、激活与回滚、配置文件解析（四条失败路径） | 装配处 |
+| `src/host/CommandSetup.ts` | 命令表装配顺序（文档动作 → 插件命令 → 显示动作） | 装配处 |
+| `src/builtin/BuiltinShapes.ts`、`BuiltinEditCommands.ts`、`index.ts` | 内置 7 个图形与 10 个编辑命令以插件形式注册（与第三方插件同权） | 插件 |
+| `src/cli/PluginCommandEntry.ts`、`src/commands/EditCommandContribution.ts` | 贡献项 → CLI 条目 / 编辑命令的适配器 | 内核 |
+| `plugins/stats/**` | `stats` 命令插件（计数口径见 `StatsCounter`） | 插件 |
+| `plugins/dir/**` | `dir` 命令插件：`DirectoryReader` 端口 + `NodeDirectoryReader` 适配器 | 插件 |
+| `plugins/shape-box/**` | `box` 复合图形：`BoxShape`/`BoxProvider`/`BoxAttributesHandler`/`BoxTypeLabelDecorator` | 插件 |
+| `plugins/shape-diamond/**` | `diamond` 基本图形（可选拓展）：只含一个 `ShapeProvider` | 插件 |
+| `plugins/tree-star/**` | `modified-star` 树标签（内容 vs 保存点） | 插件 |
+| `plugins.config.json` | 插件装配配置（JSON，非 `*.ts`，不计行数/CC） | 装配处 |
 | `vscode-extension/**` | VSCode 扩展（单独一节，不计入 CLI 增量） | 不在 CLI 三类内 |
+| `tools/verify-phase2.mjs`、`tools/metrics/report.mjs` | 验收脚本与指标脚本（不计入产品代码指标） | 工具 |

@@ -500,7 +500,33 @@ DirectoryReader（Target/端口：plugins/dir/src/DirectoryReader.ts）
 ### 7.3 指标（`final → p2`）
 
 见 [`docs/metrics/report.md`](../docs/metrics/report.md)（由 `node tools/metrics/report.mjs` 生成，
-脚本同时产出 `report.json` 便于复核；数字不得手填）。口径：
+脚本同时产出 `report.json` 便于复核；数字不得手填）。复现：
+
+```bash
+node tools/metrics/report.mjs --from final --to p2     # 与仓库里的产物只差「目标 ref」那一行
+node tools/metrics/report.mjs --selftest               # 口径自检（19 项）
+```
+
+本阶段的数字（`final → p2`，单位＝代码行「非空非注释」/ 圈复杂度 CC）：
+
+| 分区 | 文件数 | 代码行 final → p2 | 代码行增量 | CC final → p2 | CC 增量 |
+|---|---:|---:|---:|---:|---:|
+| 内核（`domain`/`commands`/`ports`/`io`/`app`/`cli`/`plugin-api`） | 86 | 2985 → 3696 | **+711** | 719 → 890 | **+171** |
+| 装配处（`host`/`main.ts`/`plugins.config.json`） | 12 | 33 → 542 | **+509** | 4 → 115 | **+111** |
+| 插件（`builtin`/`plugins`） | 20 | 0 → 763 | **+763** | 0 → 140 | **+140** |
+| **CLI 合计** | **118** | 3018 → 5001 | **+1983** | 723 → 1145 | **+422** |
+| 测试（单列，不计入） | 43 | 1337 → 3164 | +1827 | 139 → 407 | +268 |
+| VSCode 扩展（单列，不计入） | 18 | 0 → 1292 | +1292 | 0 → 226 | +226 |
+
+三句话解读：
+
+1. **内核增量里 90% 是新增的扩展点层**（`src/plugin-api`）+ `ShapeFactory`/`SvgReader`/`SetCommand`/`TreePresenter` 四个接缝；
+   阶段 1 的 19 条命令、6 种图形的行为代码没有重写，只是从"硬编码"变成"注册表驱动"。
+2. **装配处 +509 行**是一次的、与插件数量无关的开销（加载器 + 两条装配路径 + 命令表顺序）；每多一个插件只增加
+   `CodePlugins.ts` 一行 / `plugins.config.json` 一项。
+3. **插件 +763 行**是可选能力（`stats`/`dir`/`box`/`diamond`/`modified-star`），全部可以整包卸掉而不影响内核。
+
+口径：
 
 - **内核** = `src/domain`、`src/commands`、`src/ports`、`src/io`、`src/app`、`src/cli`、`src/plugin-api`
 - **装配处** = `src/host`、`src/main.ts`、`plugins.config.json`
