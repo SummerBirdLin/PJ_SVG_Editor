@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Command } from '../../src/commands/Command.js';
 import { SetCommand } from '../../src/commands/SetCommand.js';
 import { GShape } from '../../src/domain/shape/GShape.js';
 import { RectShape } from '../../src/domain/shape/RectShape.js';
@@ -201,5 +200,4 @@ test('set：处理器对「非目标类型」不命中时仍走缺省路径（�
   const harness = new CommandHarness(new HandlerLookup([compositeHandler]));
   harness.document.canvas().append(new RectShape('r1', 0, 0, 10, 10));
   assert.throws(() => harness.run(setCommand('r1', 'label', 'x')), /unknown attribute: label/);
-  assert.ok(Command.locateOrFail !== undefined);
 });

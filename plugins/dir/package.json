@@ -1,0 +1,20 @@
+{
+  "name": "@svgframe/plugin-dir",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SVG frame plugin: `dir` command (list working directory through a directory-adapter port)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "contributes": {
+    "commands": [
+      "dir"
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\""
+  }
+}
