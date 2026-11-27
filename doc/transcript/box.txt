@@ -1,9 +1,11 @@
 # 阶段 2 §4：`box` 复合图形的完整会话（需求 §6.1 流程图的 box 版本）
+# 先 save 建立保存点，因此 tree 里的 `*` 只出现在"保存后被改过"的行上
 # 回放：npm run cli --silent < doc/transcript/box.txt
 init 800 600
 create g flowchart
 create box n1 120 100 160 60 "处理数据" in flowchart
 create line arrow1 280 130 520 130 black in flowchart
+save examples/box.svg
 tree
 stats
 set n1 fill #f5a623

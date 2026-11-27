@@ -8,6 +8,9 @@
     },
     {
       "module": "@svgframe/plugin-shape-box"
+    },
+    {
+      "module": "@svgframe/plugin-tree-star"
     }
   ]
 }

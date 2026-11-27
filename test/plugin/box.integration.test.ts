@@ -5,16 +5,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApplication, type Application } from '../../src/host/Application.js';
 import { CodeAssembly } from '../../src/host/CodeAssembly.js';
-import { optionalPlugins } from '../../src/host/CodePlugins.js';
+import ShapeBoxPlugin from '@svgframe/plugin-shape-box';
 import { NodeFileStore } from '../../src/io/NodeFileStore.js';
 import { BufferOutput } from '../support/BufferOutput.js';
 
+/** 只装 box 插件：本文件只验证 box 语义，树标签的效果由 labels.integration 覆盖。 */
 async function run(script: readonly string[], withPlugins = true): Promise<{ app: Application; lines: string[] }> {
   const output = new BufferOutput();
   const app = await createApplication({
     files: new NodeFileStore(),
     output,
-    optionalAssembly: new CodeAssembly(withPlugins ? optionalPlugins() : []),
+    optionalAssembly: new CodeAssembly(withPlugins ? [new ShapeBoxPlugin()] : []),
   });
   await app.repl.run(linesOf(script));
   return { app, lines: output.value().split('\n').filter((line) => line.length > 0) };
