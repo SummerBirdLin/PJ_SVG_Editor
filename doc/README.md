@@ -53,6 +53,7 @@ npm run cli -- --config plugins.config.json   # 同一份插件清单的配置�
 npm run build                     # 编译内核到 dist/（node dist/main.js 可运行）
 node tools/verify-phase2.mjs      # 阶段 2 一键验收（含与 tag final 的兼容性对照）
 node tools/metrics/report.mjs     # 重新生成 docs/metrics/report.md（final → 当前）
+cd vscode-extension && npm run evidence   # 重新生成 doc/evidence/*.txt（徽标决策 + 大纲数据）
 ```
 
 ### 0.3 节点与 tag
@@ -433,7 +434,7 @@ DirectoryReader（Target/端口：plugins/dir/src/DirectoryReader.ts）
 | 节点 | 用例数 | 关键回归手段 |
 |---|---|---|
 | 阶段 1 完成（`final`） | 59 | transcript 逐字节 |
-| 节点 2 框架 | 95 | 阶段 1 的 59 个用例 + 两份阶段 1 transcript 逐字节不变 |
+| 节点 2 框架 | 95 | 阶段 1 的 59 个用例 + 两份阶段 1 transcript 逐字节不变（指标脚本与并行子任务在节点 6 合并，见 §6.3 #11） |
 | 节点 3 命令插件 | 119 | 未装插件时 `unknown command`；装上后 `help` 列出 |
 | 节点 4 `box` | 136 | round-trip（`save`→`read`）与"未装插件降级" |
 | 节点 5 树标签 | 152 | 状态机（编辑→保存→再编辑→undo 回保存点）+ 双装配一致 |
@@ -470,6 +471,8 @@ DirectoryReader（Target/端口：plugins/dir/src/DirectoryReader.ts）
 | 7 | 未规定属性处理器多命中 | `priority` 降序取最高；最高并列 → 拒绝并报 `ambiguous attribute handler` | ADR-1 |
 | 8 | 未规定祖先行是否标 `*` | 不传播（根行汇总） | ADR-3，与 §5 示例形态一致 |
 | 9 | "可选拓展：diamond" | 以 `plugins/shape-diamond` 实现（只加一个 `ShapeProvider`） | §3.4 的 OCP 二次验证；装配在两条路径各加一行 |
+| 10 | §3.3 给出的初始接口 `handles(shapeId, attr)` / `apply(shapeId, attr, value)` | 实现为 `handles(target: ShapeTarget, attr)` / `apply(target, attr, value, changes)` | 需求同段写明"具体接口和事务实现方式自行设计，须在文档中说明"；用 `ShapeTarget` 才能改子部件、用 `AttributeChanges` 才能保证"一次 set 一个 undo 单元"（ADR-1） |
+| 11 | 节点 2 的状态含"`metrics` 首次产出" | 指标由并行子任务产出、在节点 6 合并（`tools/metrics/report.mjs` + `docs/metrics/`） | 如实记录：脚本与产物在节点 6 才进 main；`final → p2` 的数字见 §7.3，脚本每次运行可复现（验收脚本 F/F2） |
 
 ---
 
