@@ -12,7 +12,8 @@
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test \"test/**/*.test.ts\""
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "metrics": "node tools/metrics/report.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
