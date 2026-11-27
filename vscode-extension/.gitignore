@@ -1,0 +1,2 @@
+# 打包产物与本地缓存（根 .gitignore 已忽略 node_modules/ 与 dist/）
+*.vsix

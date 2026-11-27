@@ -1,0 +1,11 @@
+# 发布包里不需要的东西：源码靠 esbuild 打成 dist/extension.js
+src/
+test/
+node_modules/
+tsconfig.json
+.npmrc
+.npm-cache/
+.npm-logs/
+.vscode/
+*.vsix
+**/*.map

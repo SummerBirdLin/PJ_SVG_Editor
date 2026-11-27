@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  示例 SVG（对齐 Phase 1 能读的写法，同时覆盖阶段 2 第一部分要展示的大纲场景）：
+  - 嵌套 <g>：layer1 里还有一层无名分组；
+  - 带 id 的元素（`rect#bg`、`g#layer1`）与不带 id 的元素（`g`、`circle`、`text`）；
+  - 非图形元素（<title>、<defs>/<linearGradient>）：大纲照样显示，Phase 1 的模型则不会；
+  - 在编辑器里随便改一处标签，保存前大纲就会跟着变（编辑更新）。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
+  <title>SVG Marker &amp; Outline 示例</title>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe8ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+
+  <g id="layer1">
+    <rect id="bg" x="0" y="0" width="240" height="160" fill="url(#sky)"/>
+
+    <!-- 这一类分组没有 id：大纲里就只显示 `g` -->
+    <g>
+      <circle id="sun" cx="200" cy="32" r="16" fill="#ffd166"/>
+      <line id="horizon" x1="0" y1="120" x2="240" y2="120" stroke="#8aa"/>
+    </g>
+
+    <g id="labels">
+      <text id="caption" x="12" y="24" fill="#234">nested groups demo</text>
+      <text x="12" y="40" fill="#567">无 id 的 text</text>
+    </g>
+  </g>
+
+  <rect x="20" y="132" width="60" height="16" fill="#9ad"/>
+</svg>
