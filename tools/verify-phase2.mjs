@@ -278,6 +278,39 @@ function checkLoaderIndependence() {
   );
 }
 
+/**
+ * E2：Part A 的"无 GUI 等价证据"可复现。
+ * 用真实扩展代码重新生成一遍，与仓库里提交的两份文本逐字节比对（防止有人手改结论）。
+ */
+function checkVscodeEvidence() {
+  const script = join(REPO, 'vscode-extension', 'tools', 'evidence.ts');
+  const committed = ['vscode-badge.txt', 'vscode-outline.txt'].map((name) => join(REPO, 'doc', 'evidence', name));
+  if (!existsSync(script) || committed.some((path) => !existsSync(path))) {
+    record('E2 VSCode 等价证据可复现', false, 'doc/evidence/ 或 vscode-extension/tools/evidence.ts 缺失');
+    return;
+  }
+  const outDir = mkdtempSync(join(tmpdir(), 'svgframe-evidence-'));
+  try {
+    const result = run(TSX, [script, '--out-dir', outDir]);
+    if (result.status !== 0) {
+      record('E2 VSCode 等价证据可复现', false, (result.stderr || result.stdout).slice(0, 300));
+      return;
+    }
+    const mismatched = ['vscode-badge.txt', 'vscode-outline.txt'].filter((name) => {
+      const fresh = readFileSync(join(outDir, name), 'utf8');
+      const before = readFileSync(join(REPO, 'doc', 'evidence', name), 'utf8');
+      return fresh !== before;
+    });
+    record(
+      'E2 VSCode 等价证据可复现',
+      mismatched.length === 0,
+      mismatched.length === 0 ? '两份文本与现场重算逐字节一致' : `不一致：${mismatched.join('、')}`,
+    );
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
+}
+
 // ---------------------------------------------------------------- F. 指标
 
 /** F：指标脚本可运行。产物写临时目录——验收过程不得弄脏工作区。 */
@@ -347,6 +380,7 @@ checkBaselineCompatibility();
 checkDualAssembly();
 checkOpenClosedEvidence();
 checkLoaderIndependence();
+checkVscodeEvidence();
 checkMetrics();
 checkMetricsReproducible();
 

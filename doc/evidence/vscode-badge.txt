@@ -1,0 +1,25 @@
+# Explorer 徽标决策（A.1 等价证据）
+
+> 本文件由 `node_modules/.bin/tsx vscode-extension/tools/evidence.ts` 生成，不是截图：本机没有 `code` CLI / Xvfb，无法启动 Extension Development Host。
+> 界面截图（Explorer 的 `[]` 徽标、大纲面板）仍需在 VSCode Remote 里安装 VSIX 后拍摄，见 doc/images/README.md。
+> 但下面每一行都是**真实扩展代码**跑出来的（同一个 `ExtensionBootstrap`、同一套 Provider），只是渲染结果被文本化。
+
+
+说明：`provideFileDecoration` 是**同步**接口，而"是不是目录"只能异步 `stat`，
+所以第一轮先答"没有"，探测完成后用 `onDidChangeFileDecorations` 让 VSCode 再来问一次。
+
+| Uri | 类型 | 第一轮（同步） | 刷新事件 | 第二轮（命中缓存） | 说明 |
+|---|---|---|---|---|---|
+| `/work/diagram.svg` | file | （无） | 1 次 | `[]` / SVG 文件（svg-marker-outline） | 普通 SVG 文件 → 应加 [] |
+| `/work/picture.SVG` | file | （无） | 1 次 | `[]` / SVG 文件（svg-marker-outline） | 大写后缀也算 SVG（后缀判定不区分大小写） |
+| `/work/notes.md` | file | （无） | — | （无） | 非 SVG → 不加标记，且**连 stat 都不发** |
+| `/work/svg.json` | file | （无） | — | （无） | 名字里有 svg 但不是 .svg 后缀 → 不加标记 |
+| `/work/folder.svg` | directory | （无） | — | （无） | 名字以 .svg 结尾的**目录** → 不加标记（需求要求目录不加） |
+| `/work/deleted.svg` | stat-fails | （无） | — | （无） | stat 失败（已删除/无权限）→ 不加标记，且不反复重试 |
+| `vscode-remote:///remote/workspace/a.svg` | file | （无） | 1 次 | `[]` / SVG 文件（svg-marker-outline） | Remote 窗口（scheme=vscode-remote）同样生效 |
+
+实际发出的 stat 次数：**5**（路径：`/work/diagram.svg`、`/work/picture.SVG`、`/work/folder.svg`、`/work/deleted.svg`、`/remote/workspace/a.svg`）
+
+结论：非 `.svg` 的 Uri 一次 stat 都没有发（后缀判定在探测之前），
+目录与 stat 失败的 Uri 只探测一次并被缓存，第二轮不会重复请求。
+

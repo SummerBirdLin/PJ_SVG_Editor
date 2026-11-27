@@ -215,9 +215,10 @@ $ node tools/verify-phase2.mjs
 [PASS] C dir 工作目录内容在验证期间未改变
 [PASS] D1/D2/D3/D4 开闭原则判据（§3.4，两条演示分支 × 改动范围/内核差异）
 [PASS] E 加载器独立性：无具体插件 import / require / 模块名分支
+[PASS] E2 VSCode 等价证据可复现（doc/evidence/ 与现场重算逐字节一致）
 [PASS] F 指标脚本可运行（final → HEAD）
 [PASS] F2 指标产物可复现（final → p2）
-=== 汇总：18/18 项通过 ===
+=== 汇总：19/19 项通过 ===
 ```
 
 三份会话输入在 `doc/transcript/`（`cli-1`、`box`、`commands`），期望输出与之一并提交，
@@ -559,6 +560,12 @@ node tools/metrics/report.mjs --selftest               # 口径自检（19 项�
 > 下面两处是**预留位置**，由用户在 VSCode Remote 中安装 VSIX 后拍摄并放入 `doc/images/`：
 > `doc/images/vscode-badge.png`（Explorer 里 `.svg` 旁的 `[]` 徽标，含一个同名 `.svg` 目录与一个 `.md` 文件作对照）、
 > `doc/images/vscode-outline.png`（原生大纲的层级树 + 点击节点后光标落在起始标签上的瞬间）。
+>
+> 截图之外还有一份**无 GUI 环境下的等价证据**：[`doc/evidence/vscode-badge.txt`](evidence/vscode-badge.txt)（徽标决策表：
+> 哪些 Uri 得到 `[]`、哪些连 `stat` 都不发、两段式刷新各触发几次）与
+> [`doc/evidence/vscode-outline.txt`](evidence/vscode-outline.txt)（`DocumentSymbol` 的层级、`range`/`selectionRange`、
+> 编辑到一半时清空而非崩溃）。它们由 `vscode-extension/tools/evidence.ts` 用**真实扩展代码**生成，
+> 可用 `npm run evidence`（在 `vscode-extension/` 下）复现，验收脚本的 E2 项会核对产物未被手改。
 
 ### 9.1 交付物与运行方式
 
